@@ -11,6 +11,7 @@
 
     <modules>
         <module>march-core</module>
+        <module>march-architecture-tests</module>
     </modules>
 
     <name>March Framework Parent</name>
@@ -27,6 +28,7 @@
         <assertj.version>4.0.0-M1</assertj.version>
         <junit.version>6.1.0-M1</junit.version>
         <mockito.version>5.23.0</mockito.version>
+        <archunit.version>1.4.1</archunit.version>
     </properties>
 
     <licenses>
@@ -38,6 +40,13 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>io.github.march-plugin</groupId>
+                <artifactId>march-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter</artifactId>
@@ -61,6 +70,18 @@
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-junit-jupiter</artifactId>
                 <version>${mockito.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.tngtech.archunit</groupId>
+                <artifactId>archunit-junit5-engine</artifactId>
+                <version>${archunit.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.tngtech.archunit</groupId>
+                <artifactId>archunit-junit5-api</artifactId>
+                <version>${archunit.version}</version>
                 <scope>test</scope>
             </dependency>
         </dependencies>
