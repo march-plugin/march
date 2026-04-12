@@ -1,4 +1,4 @@
-package io.github.march_plugin.core.config.projectstructure;
+package io.github.march_plugin.core.config.projectstructure.model;
 
 import java.util.List;
 import java.util.Objects;

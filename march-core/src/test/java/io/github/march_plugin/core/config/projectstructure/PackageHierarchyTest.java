@@ -1,5 +1,6 @@
 package io.github.march_plugin.core.config.projectstructure;
 
+import io.github.march_plugin.core.config.projectstructure.model.PackageHierarchy;
 import org.junit.jupiter.api.Test;
 import java.util.List;
 

@@ -2,7 +2,7 @@ package io.github.march_plugin.core.enforcement.rules;
 
 import io.github.march_plugin.core.config.classification.model.Classification;
 import io.github.march_plugin.core.config.classification.model.ClassifiedPackage;
-import io.github.march_plugin.core.config.projectstructure.PackageHierarchy;
+import io.github.march_plugin.core.config.projectstructure.model.PackageHierarchy;
 import io.github.march_plugin.core.enforcement.dependencies.PackageDependencyEvaluationResult;
 import io.github.march_plugin.core.enforcement.dependencies.PackageDependencyEvaluator;
 import io.github.march_plugin.core.config.rules.evaluation.RuleEvaluator;
