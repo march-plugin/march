@@ -23,6 +23,10 @@ public final class DimensionPartitionGroup {
         return partitions;
     }
 
+    public Dimension getDimension() {
+        return dimension;
+    }
+
     /**
      * Checks if the group contains a partition .
      *
