@@ -1,6 +1,6 @@
 package io.github.march_plugin.core.enforcement.rules;
 
-import io.github.march_plugin.core.config.classification.model.ClassifiedPackage;
+import io.github.march_plugin.core.config.classification.model.PackageClassification;
 import io.github.march_plugin.core.enforcement.dependencies.ForbiddenDependency;
 import io.github.march_plugin.core.enforcement.dependencies.PackageDependencyEvaluator;
 import io.github.march_plugin.core.project.MavenDependency;
@@ -33,7 +33,7 @@ public abstract class RuleEnforcer {
      * @param packageClassifications the packages classified in the project
      * @param rules                  the rules configured in march registry
      */
-    public void enforceRules(final Set<MavenDependency> dependencies, final Collection<ClassifiedPackage> packageClassifications, final List<Rule> rules) {
+    public void enforceRules(final Set<MavenDependency> dependencies, final Collection<PackageClassification> packageClassifications, final List<Rule> rules) {
         for (final var dependency : dependencies) {
             enforceRulesOnMavenDependencies(dependency, rules.stream().filter(r -> !r.ruleScope().equals(Rule.RuleScope.PACKAGE_ONLY)).toList());
         }
@@ -47,7 +47,7 @@ public abstract class RuleEnforcer {
      * @param packageClassifications the packages classified in the project
      * @param rules                  the rules configured in march registry
      */
-    protected void enforceRulesOnPackageDependencies(final Collection<ClassifiedPackage> packageClassifications, final List<Rule> rules) {
+    protected void enforceRulesOnPackageDependencies(final Collection<PackageClassification> packageClassifications, final List<Rule> rules) {
         final var forbiddenPackageDependencies = getForbiddenPackageDependencies(packageClassifications, rules);
 
         for (final var forbiddenPackageDependency : forbiddenPackageDependencies) {
@@ -75,7 +75,7 @@ public abstract class RuleEnforcer {
      * @param rules                  the rules configured in march registry
      * @return all forbidden dependencies between packages
      */
-    protected abstract List<ForbiddenDependency> getForbiddenPackageDependencies(final Collection<ClassifiedPackage> packageClassifications, final List<Rule> rules);
+    protected abstract List<ForbiddenDependency> getForbiddenPackageDependencies(final Collection<PackageClassification> packageClassifications, final List<Rule> rules);
 
     /**
      * Handles the detection of a found dependency.

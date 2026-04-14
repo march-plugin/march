@@ -45,6 +45,20 @@ public final class Classification {
     }
 
     /**
+     * Returns the classified partition of a specific {@link Dimension}.
+     *
+     * @param dimensionName the name of the dimension that should be classified
+     * @return the classified dimension
+     * @throws DimensionNotClassifiedException if the dimension is not classified
+     */
+    public Dimension.Partition getPartition(final String dimensionName) {
+        return partitions.stream()
+                .filter(p -> p.getDimension().getName().equals(dimensionName))
+                .findFirst()
+                .orElseThrow(() -> new DimensionNotClassifiedException(dimensionName));
+    }
+
+    /**
      * Builds a classification by using the existing classification and adding one partition.
      *
      * @param childPartition the partition to add
