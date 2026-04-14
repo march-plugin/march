@@ -1,6 +1,6 @@
 package io.github.march_plugin.core.enforcement.rules;
 
-import io.github.march_plugin.core.config.classification.model.ClassifiedPackage;
+import io.github.march_plugin.core.config.classification.model.PackageClassification;
 import io.github.march_plugin.core.enforcement.dependencies.ForbiddenDependency;
 import io.github.march_plugin.core.enforcement.dependencies.PackageDependencyEvaluator;
 import io.github.march_plugin.core.config.rules.evaluation.RuleEvaluator;
@@ -41,7 +41,7 @@ public class DefaultAllowRuleEnforcer extends RuleEnforcer {
     }
 
     @Override
-    protected List<ForbiddenDependency> getForbiddenPackageDependencies(final Collection<ClassifiedPackage> packageClassifications, final List<Rule> rules) {
+    protected List<ForbiddenDependency> getForbiddenPackageDependencies(final Collection<PackageClassification> packageClassifications, final List<Rule> rules) {
         final var forbiddenPackageDependencies = new ArrayList<ForbiddenDependency>();
 
         for (final var source : packageClassifications) {

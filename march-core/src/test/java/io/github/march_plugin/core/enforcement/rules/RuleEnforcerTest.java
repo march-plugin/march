@@ -1,6 +1,6 @@
 package io.github.march_plugin.core.enforcement.rules;
 
-import io.github.march_plugin.core.config.classification.model.ClassifiedPackage;
+import io.github.march_plugin.core.config.classification.model.PackageClassification;
 import io.github.march_plugin.core.enforcement.dependencies.ForbiddenDependency;
 import io.github.march_plugin.core.enforcement.dependencies.PackageDependencyEvaluationResult;
 import io.github.march_plugin.core.enforcement.dependencies.PackageDependencyEvaluator;
@@ -50,16 +50,16 @@ class RuleEnforcerTest {
 
     @Test
     void shouldHandleViolations_OnlyWhenEvaluatorReturnsTrue() {
-        final var classifiedPackage = mock(ClassifiedPackage.class);
+        final var packageClassification = mock(PackageClassification.class);
         final var rule = new Rule("Check", null, Rule.RuleScope.GLOBAL);
-        final var forbidden = new ForbiddenDependency(classifiedPackage, classifiedPackage, rule);
+        final var forbidden = new ForbiddenDependency(packageClassification, packageClassification, rule);
 
         enforcer.mockForbiddenList = List.of(forbidden);
 
         when(evaluator.evaluateForbiddenDependency(forbidden))
                 .thenReturn(new PackageDependencyEvaluationResult(true, "Error Detail"));
 
-        enforcer.enforceRulesOnPackageDependencies(List.of(classifiedPackage), List.of(rule));
+        enforcer.enforceRulesOnPackageDependencies(List.of(packageClassification), List.of(rule));
 
         assertThat(enforcer.violationCount).isEqualTo(1);
         assertThat(enforcer.lastDetail).isEqualTo("Error Detail");
@@ -81,7 +81,7 @@ class RuleEnforcerTest {
         }
 
         @Override
-        protected List<ForbiddenDependency> getForbiddenPackageDependencies(final Collection<ClassifiedPackage> pkgs, final List<Rule> rules) {
+        protected List<ForbiddenDependency> getForbiddenPackageDependencies(final Collection<PackageClassification> pkgs, final List<Rule> rules) {
             return mockForbiddenList;
         }
 

@@ -1,7 +1,7 @@
 package io.github.march_plugin.core.enforcement.dependencies;
 
-import io.github.march_plugin.core.config.classification.model.ClassifiedPackage;
+import io.github.march_plugin.core.config.classification.model.PackageClassification;
 import io.github.march_plugin.core.config.rules.model.Rule;
 
-public record ForbiddenDependency(ClassifiedPackage source, ClassifiedPackage target, Rule rule) {
+public record ForbiddenDependency(PackageClassification source, PackageClassification target, Rule rule) {
 }
