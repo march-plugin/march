@@ -67,7 +67,7 @@ public final class DimensionRegistry {
 
         /**
          * Builds the registry.
-         * @return the build registry
+         * @return the built registry
          */
         public DimensionRegistry build() {
             return new DimensionRegistry(dimensions);
