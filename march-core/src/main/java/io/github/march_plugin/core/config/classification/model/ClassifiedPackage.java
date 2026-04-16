@@ -9,15 +9,21 @@ public class ClassifiedPackage extends ClassifiedComponent {
 
     private final PackageHierarchy packageHierarchy;
     private final boolean isOptional;
+    private final PackageCoordinates packageCoordinates;
 
     protected ClassifiedPackage(final ModuleCoordinates coordinates, final Classification classification, final Dimension.Partition partition, final PackageHierarchy packageHierarchy, final boolean isOptional) {
         super(coordinates, classification, partition);
         this.packageHierarchy = packageHierarchy;
+        this.packageCoordinates = new PackageCoordinates(coordinates, packageHierarchy);
         this.isOptional = isOptional;
     }
 
     public PackageHierarchy getPackageHierarchy() {
         return packageHierarchy;
+    }
+
+    public PackageCoordinates getPackageCoordinates() {
+        return packageCoordinates;
     }
 
     public PackageClassification getClassifiedPackage() {

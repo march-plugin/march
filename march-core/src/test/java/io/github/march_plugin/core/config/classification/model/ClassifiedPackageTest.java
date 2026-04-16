@@ -47,4 +47,20 @@ class ClassifiedPackageTest {
         final var classification = pkg.getClassifiedPackage();
         assertThat(classification.isClassificationLeaf()).isTrue();
     }
+
+    @Test
+    void shouldReturnCorrectPackageCoordinates() {
+        final var moduleCoords = mock(ModuleCoordinates.class);
+        final var packageHierarchy = mock(PackageHierarchy.class);
+        final var root = new ClassifiedConcreteModule.Builder(moduleCoords).buildAsRoot();
+
+        final var classifiedPackage = new ClassifiedPackage.Builder(moduleCoords, packageHierarchy)
+                .buildAsChild(root, testUtil.articlePartition, mockPackageModularity());
+
+        final var result = classifiedPackage.getPackageCoordinates();
+
+        assertThat(result).isNotNull();
+        assertThat(result.moduleCoordinates()).isEqualTo(moduleCoords);
+        assertThat(result.packageHierarchy()).isEqualTo(packageHierarchy);
+    }
 }
