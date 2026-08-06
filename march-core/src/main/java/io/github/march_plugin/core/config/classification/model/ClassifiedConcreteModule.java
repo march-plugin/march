@@ -37,9 +37,10 @@ public class ClassifiedConcreteModule extends ClassifiedModule {
          * Constructs a builder for constructing a classified concrete module.
          *
          * @param moduleCoordinates the coordinates of the module
+         * @param partition the partition the module classifies additional to the classification of parent module
          */
-        public Builder(final ModuleCoordinates moduleCoordinates) {
-            super(moduleCoordinates);
+        public Builder(final ModuleCoordinates moduleCoordinates, final Dimension.Partition partition) {
+            super(moduleCoordinates, partition);
         }
 
         /**
@@ -64,23 +65,23 @@ public class ClassifiedConcreteModule extends ClassifiedModule {
         }
 
         @Override
-        protected ClassifiedConcreteModule build(final ClassifiedComponent parent, final Dimension.Partition partition) {
-            return new ClassifiedConcreteModule(getCoordinates(), buildClassificationWithParent(parent, partition), partition, rootPackage);
+        protected ClassifiedConcreteModule build(final ClassifiedComponent parent) {
+            return new ClassifiedConcreteModule(getCoordinates(), buildClassificationWithParent(parent), getPartition(), rootPackage);
         }
 
         @Override
-        protected void validateConvention(final ModuleModularity moduleModularity, final Dimension.Partition partition, final ClassifiedComponent builtClassification) {
-            new RootPackageConventionValidator().validate(moduleModularity.getConvention(), (placeHolder) -> replacePackageName(builtClassification, partition, placeHolder), rootPackage == null ? null : rootPackage);
+        protected void validateConvention(final ModuleModularity moduleModularity, final ClassifiedComponent builtClassification) {
+            new RootPackageConventionValidator().validate(moduleModularity.getConvention(), (x) -> replacePackageName(builtClassification, x), rootPackage == null ? null : rootPackage);
 
-            super.validateConvention(moduleModularity, partition, builtClassification);
+            super.validateConvention(moduleModularity, builtClassification);
         }
 
-        private String replacePackageName(final ClassifiedComponent parent, final Dimension.Partition partition, final String value) {
+        private String replacePackageName(final ClassifiedComponent parent, final String value) {
             if (value.equals("groupId")) {
-                return getCoordinates().groupId();
+                return getCoordinates().getGroupId();
             }
-            if (value.equals(partition.getDimension().getName())) {
-                return partition.getName();
+            if (value.equals(getPartition().getDimension().getName())) {
+                return getPartition().getName();
             }
             return parent.getClassification().getPartition(value).getName();
         }

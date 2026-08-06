@@ -65,42 +65,48 @@ public abstract class ClassifiedComponent {
     public static abstract class Builder<T extends ClassifiedComponent, U extends Modularity> {
 
         private final ModuleCoordinates moduleCoordinates;
+        private final Dimension.Partition partition;
 
         /**
          * Constructs a builder for constructing a classified component.
          *
          * @param moduleCoordinates the coordinates of the component
+         * @param partition the partition the component classifies additional to the classification of parent component
          */
-        public Builder(final ModuleCoordinates moduleCoordinates) {
+        public Builder(final ModuleCoordinates moduleCoordinates, final Dimension.Partition partition) {
             this.moduleCoordinates = moduleCoordinates;
+            this.partition = partition;
         }
 
         protected ModuleCoordinates getCoordinates() {
             return moduleCoordinates;
         }
 
-        protected Classification buildClassificationWithParent(final ClassifiedComponent parent, final Dimension.Partition partition) {
-            return parent.getClassification().buildChild(partition);
+        protected Dimension.Partition getPartition() {
+            return partition;
+        }
+
+        protected Classification buildClassificationWithParent(final ClassifiedComponent parent) {
+            return Classification.Builder.buildChildClassification(parent.classification, partition);
         }
 
         /**
          * Constructs the classified component.
          *
          * @param parent the classified parent component
-         * @param partition the partition the component classifies additional to the classification of parent component
          * @param modularity the modularity describing the component inside the project structure
          * @return the built classified component
          */
-        public T buildAsChild(final ClassifiedComponent parent, final Dimension.Partition partition, final U modularity) {
+        public T buildAsChild(final ClassifiedComponent parent, final U modularity) {
             if (partition == null) {
                 throw new ComponentPartitionNotDefinedException(moduleCoordinates.toString());
             }
 
-            if (parent.getClassification().getPartitions().stream().map(Dimension.Partition::getDimension).toList().contains(partition.getDimension())) {
+            if (parent.classification.getPartitions().stream().map(Dimension.Partition::getDimension).toList().contains(partition.getDimension())) {
                 throw new DuplicatePartitionClassificationException(partition.getDimension().getName());
             }
 
-            final var classifiedComponent = build(parent, partition);
+            final var classifiedComponent = build(parent);
 
             if (modularity.getParent().isPresent()) {
                 final var allowedPartitions = modularity.getParent().get().getAllowedPartitions();
@@ -110,13 +116,13 @@ public abstract class ClassifiedComponent {
                 }
             }
 
-            validateConvention(modularity, partition, classifiedComponent);
+            validateConvention(modularity, classifiedComponent);
 
             parent.addChild(classifiedComponent);
             return classifiedComponent;
         }
 
-        protected abstract T build(final ClassifiedComponent parent, final Dimension.Partition partition);
-        protected abstract void validateConvention(final U modularity, final Dimension.Partition partition, final ClassifiedComponent builtClassification);
+        protected abstract T build(final ClassifiedComponent parent);
+        protected abstract void validateConvention(final U modularity, final ClassifiedComponent builtClassification);
     }
 }

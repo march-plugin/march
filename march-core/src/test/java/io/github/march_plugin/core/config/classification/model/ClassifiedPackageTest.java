@@ -18,31 +18,31 @@ class ClassifiedPackageTest {
 
     @Test
     void shouldPersistOptionalFlag() {
-        final var root = new ClassifiedConcreteModule.Builder(mock(ModuleCoordinates.class)).buildAsRoot();
-        final var pkg = new ClassifiedPackage.Builder(mock(ModuleCoordinates.class), mock(PackageHierarchy.class))
+        final var root = new ClassifiedConcreteModule.Builder(mock(ModuleCoordinates.class), null).buildAsRoot();
+        final var pkg = new ClassifiedPackage.Builder(mock(ModuleCoordinates.class), testUtil.articlePartition, mock(PackageHierarchy.class))
                 .setOptional()
-                .buildAsChild(root, testUtil.articlePartition, mockPackageModularity());
+                .buildAsChild(root, mockPackageModularity());
 
         assertThat(pkg.isOptional()).isTrue();
     }
 
     @Test
     void shouldThrowWhenAddingModuleToPackage() {
-        final var root = new ClassifiedConcreteModule.Builder(mock(ModuleCoordinates.class)).buildAsRoot();
-        final var pkg = new ClassifiedPackage.Builder(mock(ModuleCoordinates.class), mock(PackageHierarchy.class))
-                .buildAsChild(root, testUtil.articlePartition, mockPackageModularity());
+        final var root = new ClassifiedConcreteModule.Builder(mock(ModuleCoordinates.class), null).buildAsRoot();
+        final var pkg = new ClassifiedPackage.Builder(mock(ModuleCoordinates.class), testUtil.articlePartition, mock(PackageHierarchy.class))
+                .buildAsChild(root, mockPackageModularity());
 
-        final var moduleBuilder = new ClassifiedVirtualModule.Builder(mock(ModuleCoordinates.class));
+        final var moduleBuilder = new ClassifiedVirtualModule.Builder(mock(ModuleCoordinates.class), mock(Dimension.Partition.class));
 
-        assertThatThrownBy(() -> moduleBuilder.buildAsChild(pkg, mock(Dimension.Partition.class), mockModuleModularity()))
+        assertThatThrownBy(() -> moduleBuilder.buildAsChild(pkg, mockModuleModularity()))
                 .isInstanceOf(ClassifiedPackageChildrenException.class);
     }
 
     @Test
     void shouldIdentifyLeafStatusInPackageClassification() {
-        final var root = new ClassifiedConcreteModule.Builder(mock(ModuleCoordinates.class)).buildAsRoot();
-        final var pkg = new ClassifiedPackage.Builder(mock(ModuleCoordinates.class), mock(PackageHierarchy.class))
-                .buildAsChild(root, testUtil.articlePartition, mockPackageModularity());
+        final var root = new ClassifiedConcreteModule.Builder(mock(ModuleCoordinates.class), null).buildAsRoot();
+        final var pkg = new ClassifiedPackage.Builder(mock(ModuleCoordinates.class), testUtil.articlePartition, mock(PackageHierarchy.class))
+                .buildAsChild(root, mockPackageModularity());
 
         final var classification = pkg.getClassifiedPackage();
         assertThat(classification.isClassificationLeaf()).isTrue();
@@ -52,10 +52,10 @@ class ClassifiedPackageTest {
     void shouldReturnCorrectPackageCoordinates() {
         final var moduleCoords = mock(ModuleCoordinates.class);
         final var packageHierarchy = mock(PackageHierarchy.class);
-        final var root = new ClassifiedConcreteModule.Builder(moduleCoords).buildAsRoot();
+        final var root = new ClassifiedConcreteModule.Builder(moduleCoords, null).buildAsRoot();
 
-        final var classifiedPackage = new ClassifiedPackage.Builder(moduleCoords, packageHierarchy)
-                .buildAsChild(root, testUtil.articlePartition, mockPackageModularity());
+        final var classifiedPackage = new ClassifiedPackage.Builder(moduleCoords, testUtil.articlePartition, packageHierarchy)
+                .buildAsChild(root, mockPackageModularity());
 
         final var result = classifiedPackage.getPackageCoordinates();
 

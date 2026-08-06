@@ -29,16 +29,17 @@ public class ClassifiedVirtualModuleReference extends ClassifiedModule {
          * Constructs a builder for constructing a classified virtual module reference.
          *
          * @param moduleCoordinates the coordinates of the module
+         * @param partition the partition the module classifies additional to the classification of parent module
          * @param externalModuleCoordinates the coordinates of the external module used in the project
          */
-        public Builder(final ModuleCoordinates moduleCoordinates, final ModuleCoordinates externalModuleCoordinates) {
-            super(moduleCoordinates);
+        public Builder(final ModuleCoordinates moduleCoordinates, final Dimension.Partition partition, final ModuleCoordinates externalModuleCoordinates) {
+            super(moduleCoordinates, partition);
             this.externalModuleCoordinates = externalModuleCoordinates;
         }
 
         @Override
-        protected ClassifiedVirtualModuleReference build(final ClassifiedComponent parent, final Dimension.Partition partition) {
-            return new ClassifiedVirtualModuleReference(getCoordinates(), buildClassificationWithParent(parent, partition), partition, externalModuleCoordinates);
+        protected ClassifiedVirtualModuleReference build(final ClassifiedComponent parent) {
+            return new ClassifiedVirtualModuleReference(getCoordinates(), buildClassificationWithParent(parent), getPartition(), externalModuleCoordinates);
         }
     }
 }

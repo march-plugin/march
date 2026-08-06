@@ -23,31 +23,29 @@ class ClassifiedComponentTest {
     @Test
     void shouldThrowWhenBuildingAsChildWithoutPartition() {
         final var coords = new ModuleCoordinates("io.test", "a");
-        final var builder = new ClassifiedConcreteModule.Builder(coords);
+        final var builder = new ClassifiedConcreteModule.Builder(coords, null);
         final var parent = mock(ClassifiedComponent.class);
         final var modularity = mockModuleModularity();
 
-        assertThatThrownBy(() -> builder.buildAsChild(parent, null, modularity))
+        assertThatThrownBy(() -> builder.buildAsChild(parent, modularity))
                 .isInstanceOf(ComponentPartitionNotDefinedException.class);
     }
 
     @Test
     void shouldThrowOnDuplicateDimensionInHierarchy() {
-        final var parent = mock(ClassifiedComponent.class);
-        final var classification = mock(Classification.class);
-        when(parent.getClassification()).thenReturn(classification);
-        when(classification.getPartitions()).thenReturn(Set.of(testUtil.presentationPartition));
+        final var root = new ClassifiedConcreteModule.Builder(mock(ModuleCoordinates.class), null).buildAsRoot();
+        final var parent = new ClassifiedConcreteModule.Builder(mock(ModuleCoordinates.class), testUtil.presentationPartition)
+                .buildAsChild(root, mockModuleModularity());
 
-        final var builder = new ClassifiedConcreteModule.Builder(mock(ModuleCoordinates.class));
+        final var builder = new ClassifiedConcreteModule.Builder(mock(ModuleCoordinates.class), testUtil.dbAccessPartition);
 
-        assertThatThrownBy(() -> builder.buildAsChild(parent, testUtil.dbAccessPartition, mockModuleModularity()))
+        assertThatThrownBy(() -> builder.buildAsChild(parent, mockModuleModularity()))
                 .isInstanceOf(DuplicatePartitionClassificationException.class);
     }
 
     @Test
     void shouldThrowWhenPartitionIsNotAllowedByModularity() {
-        final var parent = mock(ClassifiedComponent.class);
-        when(parent.getClassification()).thenReturn(mock(Classification.class));
+        final var parent = new ClassifiedConcreteModule.Builder(mock(ModuleCoordinates.class), null).buildAsRoot();
 
         final var modularity = mockModuleModularity();
         final var parentModularity = mockModuleModularity();
@@ -56,15 +54,15 @@ class ClassifiedComponentTest {
         when(allowedPartitions.getPartitions()).thenReturn(Set.of(testUtil.presentationPartition));
         when(parentModularity.getAllowedPartitions()).thenReturn(allowedPartitions);
 
-        final var builder = new ClassifiedConcreteModule.Builder(mock(ModuleCoordinates.class));
+        final var builder = new ClassifiedConcreteModule.Builder(mock(ModuleCoordinates.class), testUtil.presentationPartition);
 
-        assertThatThrownBy(() -> builder.buildAsChild(parent, testUtil.presentationPartition, modularity))
+        assertThatThrownBy(() -> builder.buildAsChild(parent, modularity))
                 .isInstanceOf(PartitionNotAllowedException.class);
     }
 
     @Test
     void shouldReturnImmutableChildrenList() {
-        final var root = new ClassifiedConcreteModule.Builder(mock(ModuleCoordinates.class)).buildAsRoot();
+        final var root = new ClassifiedConcreteModule.Builder(mock(ModuleCoordinates.class), null).buildAsRoot();
         final var children = root.getChildren();
 
         assertThatThrownBy(() -> children.add(mock(ClassifiedComponent.class)))
@@ -74,7 +72,7 @@ class ClassifiedComponentTest {
     @Test
     void shouldReturnCoordinatesAndClassification() {
         final var coords = new ModuleCoordinates("io.group", "artifact");
-        final var root = new ClassifiedConcreteModule.Builder(coords).buildAsRoot();
+        final var root = new ClassifiedConcreteModule.Builder(coords, null).buildAsRoot();
 
         assertThat(root.getModuleCoordinates()).isEqualTo(coords);
         assertThat(root.getClassification()).isNotNull();
@@ -83,15 +81,15 @@ class ClassifiedComponentTest {
     @Test
     void shouldThrowWhenPartitionDimensionMatchesParentDimension() {
         final var parent = new ClassifiedConcreteModule.Builder(
-                new ModuleCoordinates("g", "p")).buildAsRoot();
+                new ModuleCoordinates("g", "p"), null).buildAsRoot();
         final var childBuilder = new ClassifiedConcreteModule.Builder(
-                new ModuleCoordinates("g", "c"));
+                new ModuleCoordinates("g", "c"), testUtil.dbAccessPartition);
         final var grandBuilder = new ClassifiedConcreteModule.Builder(
-                new ModuleCoordinates("g", "gc"));
+                new ModuleCoordinates("g", "gc"), testUtil.businessPartition);
 
-        final var child = childBuilder.buildAsChild(parent, testUtil.dbAccessPartition, mockModuleModularity());
+        final var child = childBuilder.buildAsChild(parent, mockModuleModularity());
 
-        assertThatThrownBy(() -> grandBuilder.buildAsChild(child, testUtil.businessPartition, mockModuleModularity()))
+        assertThatThrownBy(() -> grandBuilder.buildAsChild(child, mockModuleModularity()))
                 .isInstanceOf(DuplicatePartitionClassificationException.class);
     }
 }

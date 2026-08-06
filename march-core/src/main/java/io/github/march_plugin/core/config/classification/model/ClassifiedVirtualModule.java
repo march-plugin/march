@@ -24,14 +24,15 @@ public class ClassifiedVirtualModule extends ClassifiedModule {
          * Constructs a builder for constructing a classified virtual module.
          *
          * @param moduleCoordinates the coordinates of the module
+         * @param partition the partition the module classifies additional to the classification of parent module
          */
-        public Builder(final ModuleCoordinates moduleCoordinates) {
-            super(moduleCoordinates);
+        public Builder(final ModuleCoordinates moduleCoordinates, final Dimension.Partition partition) {
+            super(moduleCoordinates, partition);
         }
 
         @Override
-        protected ClassifiedVirtualModule build(final ClassifiedComponent parent, final Dimension.Partition partition) {
-            return new ClassifiedVirtualModule(getCoordinates(), buildClassificationWithParent(parent, partition), partition);
+        protected ClassifiedVirtualModule build(final ClassifiedComponent parent) {
+            return new ClassifiedVirtualModule(getCoordinates(), buildClassificationWithParent(parent), getPartition());
         }
     }
 }

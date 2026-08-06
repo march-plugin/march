@@ -16,7 +16,7 @@ class ClassifiedConcreteModuleTest {
     @Test
     void shouldBuildRootModuleWithEmptyClassification() {
         final var coords = new ModuleCoordinates("g", "a");
-        final var root = new ClassifiedConcreteModule.Builder(coords).buildAsRoot();
+        final var root = new ClassifiedConcreteModule.Builder(coords, null).buildAsRoot();
 
         assertThat(root.getPartition()).isNull();
         assertThat(root.getRootPackage()).isNull();
@@ -25,14 +25,14 @@ class ClassifiedConcreteModuleTest {
 
     @Test
     void shouldThrowWhenMixingPackageAndModuleChildren() {
-        final var root = new ClassifiedConcreteModule.Builder(mock(ModuleCoordinates.class)).buildAsRoot();
+        final var root = new ClassifiedConcreteModule.Builder(mock(ModuleCoordinates.class), null).buildAsRoot();
 
-        final var pkgBuilder = new ClassifiedPackage.Builder(mock(ModuleCoordinates.class), mock(PackageHierarchy.class));
-        pkgBuilder.buildAsChild(root, mock(Dimension.Partition.class), mockPackageModularity());
+        final var pkgBuilder = new ClassifiedPackage.Builder(mock(ModuleCoordinates.class), mock(Dimension.Partition.class), mock(PackageHierarchy.class));
+        pkgBuilder.buildAsChild(root, mockPackageModularity());
 
-        final var moduleBuilder = new ClassifiedVirtualModule.Builder(mock(ModuleCoordinates.class));
+        final var moduleBuilder = new ClassifiedVirtualModule.Builder(mock(ModuleCoordinates.class), mock(Dimension.Partition.class));
 
-        assertThatThrownBy(() -> moduleBuilder.buildAsChild(root, mock(Dimension.Partition.class), mockModuleModularity()))
+        assertThatThrownBy(() -> moduleBuilder.buildAsChild(root, mockModuleModularity()))
                 .isInstanceOf(ClassifiedConcreteModuleChildrenException.class);
     }
 }
