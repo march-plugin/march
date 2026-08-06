@@ -19,21 +19,21 @@ public final class ModuleConventionValidator {
     public void validate(final ModuleConvention convention, final Function<String, String> replacementFunction, final ModuleCoordinates moduleCoordinates) {
         if (convention.getGroupId() != null) {
             final var expectedGroupId = new NamingPatternReplacer().replaceString(
-                    convention.getGroupId(), 
+                    convention.getGroupId(),
                     replacementFunction);
 
-            if (!Objects.equals(moduleCoordinates.groupId(), expectedGroupId)) {
-                throw new GroupIdNamingConventionViolationException(moduleCoordinates.artifactId(), moduleCoordinates.groupId(), expectedGroupId);
+            if (!Objects.equals(moduleCoordinates.getGroupId(), expectedGroupId)) {
+                throw new GroupIdNamingConventionViolationException(moduleCoordinates.getArtifactId(), moduleCoordinates.getGroupId(), expectedGroupId);
             }
         }
 
         if (convention.getArtifactId() != null) {
             final var expectedArtifactId = new NamingPatternReplacer().replaceString(
-                    convention.getArtifactId(), 
+                    convention.getArtifactId(),
                     replacementFunction);
 
-            if (!Objects.equals(moduleCoordinates.artifactId(), expectedArtifactId)) {
-                throw new ArtifactIdNamingConventionViolationException(moduleCoordinates.artifactId(), expectedArtifactId);
+            if (!Objects.equals(moduleCoordinates.getArtifactId(), expectedArtifactId)) {
+                throw new ArtifactIdNamingConventionViolationException(moduleCoordinates.getArtifactId(), expectedArtifactId);
             }
         }
     }

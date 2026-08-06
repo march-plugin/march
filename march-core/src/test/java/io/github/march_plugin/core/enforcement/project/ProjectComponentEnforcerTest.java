@@ -40,7 +40,7 @@ class ProjectComponentEnforcerTest {
     private Path tempDir;
 
     private final ProjectComponentEnforcer enforcer = new ProjectComponentEnforcer();
-    private final ClassifiedConcreteModule projectRoot = new ClassifiedConcreteModule.Builder(new ModuleCoordinates("io.example", "root")).buildAsRoot();
+    private final ClassifiedConcreteModule projectRoot = new ClassifiedConcreteModule.Builder(new ModuleCoordinates("io.example", "root"), null).buildAsRoot();
 
     private int dimensionCounter;
 
@@ -54,20 +54,20 @@ class ProjectComponentEnforcerTest {
     }
 
     private ClassifiedConcreteModule module(final ModuleCoordinates coordinates, final PackageHierarchy rootPackage) {
-        return new ClassifiedConcreteModule.Builder(coordinates)
+        return new ClassifiedConcreteModule.Builder(coordinates, freshPartition())
                 .setRootPackage(rootPackage)
-                .buildAsChild(projectRoot, freshPartition(), mockModuleModularity());
+                .buildAsChild(projectRoot, mockModuleModularity());
     }
 
     private ClassifiedPackage classifiedPackage(final ClassifiedComponent parent, final PackageHierarchy hierarchy) {
-        return new ClassifiedPackage.Builder(parent.getModuleCoordinates(), hierarchy)
-                .buildAsChild(parent, freshPartition(), mockPackageModularity());
+        return new ClassifiedPackage.Builder(parent.getModuleCoordinates(), freshPartition(), hierarchy)
+                .buildAsChild(parent, mockPackageModularity());
     }
 
     private ClassifiedPackage optionalPackage(final ClassifiedComponent parent, final PackageHierarchy hierarchy) {
-        return new ClassifiedPackage.Builder(parent.getModuleCoordinates(), hierarchy)
+        return new ClassifiedPackage.Builder(parent.getModuleCoordinates(), freshPartition(), hierarchy)
                 .setOptional()
-                .buildAsChild(parent, freshPartition(), mockPackageModularity());
+                .buildAsChild(parent, mockPackageModularity());
     }
 
     private void mkdirs(final Path path) {
@@ -429,8 +429,8 @@ class ProjectComponentEnforcerTest {
 
         @Test
         void shouldNotRequireVirtualModulesToExistInProject() {
-            final var virtualModule = new ClassifiedVirtualModule.Builder(new ModuleCoordinates("io.example", "virtual"))
-                    .buildAsChild(projectRoot, freshPartition(), mockModuleModularity());
+            final var virtualModule = new ClassifiedVirtualModule.Builder(new ModuleCoordinates("io.example", "virtual"), freshPartition())
+                    .buildAsChild(projectRoot, mockModuleModularity());
 
             final var registryBuilder = new ClassificationRegistry.Builder();
             registryBuilder.addModuleClassification(virtualModule);

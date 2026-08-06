@@ -1,13 +1,10 @@
 package io.github.march_plugin.core.config.classification.model;
 
 import io.github.march_plugin.core.config.classification.exception.DimensionNotClassifiedException;
-import io.github.march_plugin.core.config.classification.exception.DuplicatePartitionClassificationException;
 import io.github.march_plugin.core.config.dimensions.model.Dimension;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -16,17 +13,9 @@ import java.util.Set;
  */
 public final class Classification {
     private final Set<Dimension.Partition> partitions;
-    private final Map<Dimension, Dimension.Partition> dimensionMap;
 
     private Classification(final Set<Dimension.Partition> partitions) {
-        final var map = new HashMap<Dimension, Dimension.Partition>();
-        for (final var partition : partitions) {
-            if (map.put(partition.getDimension(), partition) != null) {
-                throw new DuplicatePartitionClassificationException(partition.getDimension().getName());
-            }
-        }
-        this.partitions = Collections.unmodifiableSet(new HashSet<>(partitions));
-        this.dimensionMap = Collections.unmodifiableMap(map);
+        this.partitions = Collections.unmodifiableSet(partitions);
     }
 
     /**
@@ -37,11 +26,10 @@ public final class Classification {
      * @throws DimensionNotClassifiedException if the dimension is not classified
      */
     public Dimension.Partition getPartition(final Dimension dimension) {
-        final var partition = dimensionMap.get(dimension);
-        if (partition == null) {
-            throw new DimensionNotClassifiedException(dimension.getName());
-        }
-        return partition;
+        return partitions.stream()
+                .filter(p -> p.getDimension().equals(dimension))
+                .findFirst()
+                .orElseThrow(() -> new DimensionNotClassifiedException(dimension.getName()));
     }
 
     /**
@@ -56,25 +44,6 @@ public final class Classification {
                 .filter(p -> p.getDimension().getName().equals(dimensionName))
                 .findFirst()
                 .orElseThrow(() -> new DimensionNotClassifiedException(dimensionName));
-    }
-
-    /**
-     * Builds a classification by using the existing classification and adding one partition.
-     *
-     * @param childPartition the partition to add
-     * @return the build child classification
-     */
-    public Classification buildChild(final Dimension.Partition childPartition) {
-        if (partitions.stream().map(Dimension.Partition::getDimension).anyMatch(p -> p.equals(childPartition.getDimension()))) {
-            throw new DuplicatePartitionClassificationException(childPartition.getDimension().getName());
-        }
-
-        final var builder = new Builder();
-        for (final var partition : partitions) {
-            builder.addPartition(partition);
-        }
-        builder.addPartition(childPartition);
-        return builder.build();
     }
 
     @Override
@@ -92,6 +61,11 @@ public final class Classification {
     @Override
     public int hashCode() {
         return Objects.hash(partitions);
+    }
+
+    @Override
+    public String toString() {
+        return "[" + String.join(";", partitions.stream().map(Dimension.Partition::toString).toList()) + "]";
     }
 
     public Set<Dimension.Partition> getPartitions() {
@@ -118,6 +92,22 @@ public final class Classification {
          */
         public Classification build() {
             return new Classification(partitions);
+        }
+
+        /**
+         * Builds a classification by combining the partitions of an existing classification with one additional partition.
+         *
+         * @param classification the classification to extend
+         * @param childPartition the partition to add
+         * @return the built child classification
+         */
+        public static Classification buildChildClassification(final Classification classification, final Dimension.Partition childPartition) {
+            final var builder = new Builder();
+            for (final var partition : classification.partitions) {
+                builder.addPartition(partition);
+            }
+            builder.addPartition(childPartition);
+            return builder.build();
         }
     }
 }

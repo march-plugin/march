@@ -15,13 +15,14 @@ public abstract class ClassifiedModule extends ClassifiedComponent {
          * Constructs a builder for constructing a classified module.
          *
          * @param moduleCoordinates the coordinates of the module
+         * @param partition the partition the module classifies additional to the classification of parent module
          */
-        public Builder(final ModuleCoordinates moduleCoordinates) {
-            super(moduleCoordinates);
+        public Builder(final ModuleCoordinates moduleCoordinates, final Dimension.Partition partition) {
+            super(moduleCoordinates, partition);
         }
 
         @Override
-        protected void validateConvention(final ModuleModularity modularity, final Dimension.Partition partition, final ClassifiedComponent builtClassification) {
+        protected void validateConvention(final ModuleModularity modularity, final ClassifiedComponent builtClassification) {
             new ModuleConventionValidator().validate(
                     modularity.getConvention(),
                     (String placeHolder) -> builtClassification.getClassification().getPartition(placeHolder).getName(),

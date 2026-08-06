@@ -1,6 +1,5 @@
 package io.github.march_plugin.core.config.rules.evaluation;
 
-import io.github.march_plugin.core.config.classification.exception.DuplicatePartitionClassificationException;
 import io.github.march_plugin.core.config.classification.model.Classification;
 import io.github.march_plugin.core.config.dimensions.model.Dimension;
 import io.github.march_plugin.core.config.rules.evaluation.RuleEvaluator;
@@ -164,15 +163,13 @@ class RuleEvaluatorTest {
     class ClassificationIntegrity {
 
         @Test
-        void shouldThrowExceptionOnDuplicateDimensionInBuilder() {
-            final var builder = new Classification.Builder()
-                    .addPartition(servicePart);
+        void shouldAllowDuplicateDimensionWhenBuiltDirectly() {
+            final var classification = new Classification.Builder()
+                    .addPartition(servicePart)
+                    .addPartition(uiPart)
+                    .build();
 
-            builder.addPartition(uiPart);
-
-            assertThatThrownBy(builder::build)
-                    .isInstanceOf(DuplicatePartitionClassificationException.class)
-                    .hasMessageContaining("layer");
+            assertThat(classification.getPartitions()).containsExactlyInAnyOrder(servicePart, uiPart);
         }
 
         @Test
@@ -183,9 +180,10 @@ class RuleEvaluatorTest {
         }
 
         @Test
-        void buildChildShouldFailIfDimensionAlreadyExists() {
-            assertThatThrownBy(() -> serviceClassification.buildChild(uiPart))
-                    .isInstanceOf(DuplicatePartitionClassificationException.class);
+        void buildChildClassificationShouldMergePartitionsWithoutDuplicateCheck() {
+            final var merged = Classification.Builder.buildChildClassification(serviceClassification, uiPart);
+
+            assertThat(merged.getPartitions()).containsExactlyInAnyOrder(servicePart, uiPart);
         }
     }
 
