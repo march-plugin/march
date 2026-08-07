@@ -28,7 +28,11 @@ public sealed interface LogicalExpression {
 
         @Override
         public String toString() {
-            return left.toString() + " AND " + right.toString();
+            return wrapIfLowerPrecedence(left) + " AND " + wrapIfLowerPrecedence(right);
+        }
+
+        private static String wrapIfLowerPrecedence(final LogicalExpression expression) {
+            return expression instanceof Or ? "(" + expression + ")" : expression.toString();
         }
     }
 
@@ -74,30 +78,11 @@ public sealed interface LogicalExpression {
 
         @Override
         public String toString() {
-            return "!" + expression.toString();
-        }
-    }
-
-    /**
-     * Represents a parenthetical group.
-     *
-     * @param expression the logical expression within the group
-     */
-    record Group(LogicalExpression expression) implements LogicalExpression {
-        /**
-         * Validates group logic.
-         *
-         * @param expression the logical expression within the group
-         */
-        public Group {
-            if (expression == null) {
-                throw new NullComparisonException();
-            }
+            return "!" + wrapIfLowerPrecedence(expression);
         }
 
-        @Override
-        public String toString() {
-            return "(" + expression.toString() + ")";
+        private static String wrapIfLowerPrecedence(final LogicalExpression expression) {
+            return (expression instanceof And || expression instanceof Or) ? "(" + expression + ")" : expression.toString();
         }
     }
 

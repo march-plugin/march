@@ -45,7 +45,6 @@ class LogicalExpressionTest {
                 Arguments.of((Runnable) () -> new LogicalExpression.Or(null, validComparison)),
                 Arguments.of((Runnable) () -> new LogicalExpression.Or(validComparison, null)),
                 Arguments.of((Runnable) () -> new LogicalExpression.Not(null)),
-                Arguments.of((Runnable) () -> new LogicalExpression.Group(null)),
                 Arguments.of((Runnable) () -> new LogicalExpression.ComparisonWrap(null))
         );
     }
