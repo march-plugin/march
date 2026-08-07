@@ -25,7 +25,6 @@ public class RuleEvaluator {
         return switch (expression) {
             case LogicalExpression.And and -> evaluate(and.left(), sourcePartitions, targetPartitions) && evaluate(and.right(), sourcePartitions, targetPartitions);
             case LogicalExpression.Or or -> evaluate(or.left(), sourcePartitions, targetPartitions) || evaluate(or.right(), sourcePartitions, targetPartitions);
-            case LogicalExpression.Group g -> evaluate(g.expression(), sourcePartitions, targetPartitions);
             case LogicalExpression.ComparisonWrap wrap -> evaluateComparison(wrap.comparison(), sourcePartitions, targetPartitions);
             case LogicalExpression.Not not -> !evaluate(not.expression(), sourcePartitions, targetPartitions);
         };

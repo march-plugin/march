@@ -150,9 +150,7 @@ class RuleEvaluatorTest {
         @Test
         void shouldHandleDeeplyNestedLogic() {
             final var complex = new LogicalExpression.Not(
-                    new LogicalExpression.Group(
-                            new LogicalExpression.And(sourceIsService, targetIsUI)
-                    )
+                    new LogicalExpression.And(sourceIsService, targetIsUI)
             );
             assertThat(EVALUATOR.evaluate(complex, serviceClassification, uiClassification)).isFalse();
             assertThat(EVALUATOR.evaluate(complex, serviceClassification, emptyClassification)).isTrue();

@@ -43,9 +43,24 @@ class LogicalExpressionToStringTest {
         return Stream.of(
                 Arguments.of(eqService, "source.layer == layer.service"),
                 Arguments.of(new LogicalExpression.Not(eqService), "!source.layer == layer.service"),
-                Arguments.of(new LogicalExpression.Group(eqService), "(source.layer == layer.service)"),
                 Arguments.of(new LogicalExpression.And(eqService, eqUI), "source.layer == layer.service AND source.layer == layer.ui"),
-                Arguments.of(new LogicalExpression.Or(eqService, eqUI), "source.layer == layer.service OR source.layer == layer.ui")
+                Arguments.of(new LogicalExpression.Or(eqService, eqUI), "source.layer == layer.service OR source.layer == layer.ui"),
+
+                Arguments.of(new LogicalExpression.And(new LogicalExpression.Or(eqService, eqUI), eqService),
+                        "(source.layer == layer.service OR source.layer == layer.ui) AND source.layer == layer.service"),
+                Arguments.of(new LogicalExpression.And(eqService, new LogicalExpression.Or(eqService, eqUI)),
+                        "source.layer == layer.service AND (source.layer == layer.service OR source.layer == layer.ui)"),
+                Arguments.of(new LogicalExpression.Or(new LogicalExpression.And(eqService, eqUI), eqService),
+                        "source.layer == layer.service AND source.layer == layer.ui OR source.layer == layer.service"),
+                Arguments.of(new LogicalExpression.Not(new LogicalExpression.And(eqService, eqUI)),
+                        "!(source.layer == layer.service AND source.layer == layer.ui)"),
+                Arguments.of(new LogicalExpression.Not(new LogicalExpression.Or(eqService, eqUI)),
+                        "!(source.layer == layer.service OR source.layer == layer.ui)"),
+                Arguments.of(new LogicalExpression.And(new LogicalExpression.And(eqService, eqUI), eqService),
+                        "source.layer == layer.service AND source.layer == layer.ui AND source.layer == layer.service"),
+                Arguments.of(new LogicalExpression.Or(new LogicalExpression.Or(eqService, eqUI), eqService),
+                        "source.layer == layer.service OR source.layer == layer.ui OR source.layer == layer.service"),
+                Arguments.of(new LogicalExpression.Not(new LogicalExpression.Not(eqService)), "!!source.layer == layer.service")
         );
     }
 }

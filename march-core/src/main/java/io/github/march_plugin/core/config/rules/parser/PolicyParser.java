@@ -69,7 +69,7 @@ class PolicyParser {
             eat(TokenType.OPEN_PAREN);
             final var expr = parseOr();
             eat(TokenType.CLOSE_PAREN);
-            return new LogicalExpression.Group(expr);
+            return expr;
         }
 
         final var left = parsePartitionExpression();
