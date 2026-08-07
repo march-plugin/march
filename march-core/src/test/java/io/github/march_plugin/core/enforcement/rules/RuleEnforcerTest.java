@@ -1,10 +1,14 @@
 package io.github.march_plugin.core.enforcement.rules;
 
+import io.github.march_plugin.core.config.classification.model.ClassificationRegistry;
+import io.github.march_plugin.core.config.classification.model.ClassifiedPackage;
 import io.github.march_plugin.core.config.classification.model.PackageClassification;
+import io.github.march_plugin.core.config.rules.config.RuleRegistry;
 import io.github.march_plugin.core.enforcement.dependencies.ForbiddenDependency;
 import io.github.march_plugin.core.enforcement.dependencies.PackageDependencyEvaluationResult;
 import io.github.march_plugin.core.enforcement.dependencies.PackageDependencyEvaluator;
 import io.github.march_plugin.core.project.MavenDependency;
+import io.github.march_plugin.core.project.ProjectModuleRegistry;
 import io.github.march_plugin.core.config.rules.model.Rule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,7 +43,7 @@ class RuleEnforcerTest {
         final var rules = List.of(globalRule, packageRule, moduleRule);
         final var mavenDependency = new MavenDependency(null, null, "desc");
 
-        enforcer.enforceRules(Set.of(mavenDependency), Collections.emptyList(), rules);
+        invokeEnforceRules(enforcer, Set.of(mavenDependency), Collections.emptyList(), rules);
 
         final var filteredMavenRules = enforcer.receivedMavenRules;
 
@@ -63,6 +67,25 @@ class RuleEnforcerTest {
 
         assertThat(enforcer.violationCount).isEqualTo(1);
         assertThat(enforcer.lastDetail).isEqualTo("Error Detail");
+    }
+
+    private static void invokeEnforceRules(final RuleEnforcer enforcer, final Set<MavenDependency> dependencies,
+                                            final Collection<PackageClassification> packages, final List<Rule> rules) {
+        final var classificationRegistry = mock(ClassificationRegistry.class);
+        final var projectModuleRegistry = mock(ProjectModuleRegistry.class);
+        final var ruleRegistry = mock(RuleRegistry.class);
+
+        final var classifiedPackages = packages.stream().map(p -> {
+            final var classifiedPackage = mock(ClassifiedPackage.class);
+            when(classifiedPackage.getClassifiedPackage()).thenReturn(p);
+            return classifiedPackage;
+        }).toList();
+
+        when(projectModuleRegistry.getDependencies(classificationRegistry)).thenReturn(dependencies);
+        when(classificationRegistry.getAllClassifiedPackages()).thenReturn(classifiedPackages);
+        when(ruleRegistry.getRules()).thenReturn(rules);
+
+        enforcer.enforceRules(classificationRegistry, projectModuleRegistry, ruleRegistry);
     }
 
     private static class TestRuleEnforcer extends RuleEnforcer {

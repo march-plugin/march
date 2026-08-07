@@ -3,7 +3,6 @@ package io.github.march_plugin.core.enforcement.rules;
 import io.github.march_plugin.core.config.classification.model.PackageClassification;
 import io.github.march_plugin.core.enforcement.dependencies.ForbiddenDependency;
 import io.github.march_plugin.core.enforcement.dependencies.PackageDependencyEvaluator;
-import io.github.march_plugin.core.config.rules.evaluation.RuleEvaluator;
 import io.github.march_plugin.core.enforcement.rules.exceptions.DependencyForbiddenException;
 import io.github.march_plugin.core.enforcement.rules.exceptions.PackageDependencyForbiddenException;
 import io.github.march_plugin.core.project.MavenDependency;
@@ -18,23 +17,20 @@ import java.util.List;
  */
 public class DefaultAllowRuleEnforcer extends RuleEnforcer {
 
-    private final RuleEvaluator ruleEvaluator;
 
     /**
      * Constructs the RuleEnforcer.
      *
      * @param packageDependencyEvaluator evaluates if a forbidden package dependency is present
-     * @param ruleEvaluator evaluates if a dependency matches a rule.
      */
-    public DefaultAllowRuleEnforcer(final PackageDependencyEvaluator packageDependencyEvaluator, final RuleEvaluator ruleEvaluator) {
+    public DefaultAllowRuleEnforcer(final PackageDependencyEvaluator packageDependencyEvaluator) {
         super(packageDependencyEvaluator);
-        this.ruleEvaluator = ruleEvaluator;
     }
 
     @Override
     public void enforceRulesOnMavenDependencies(final MavenDependency mavenDependency, final List<Rule> rules) {
         for (final var rule : rules) {
-            if (ruleEvaluator.evaluate(rule.definition(), mavenDependency.source(), mavenDependency.target())) {
+            if (getRuleEvaluator().evaluate(rule.definition(), mavenDependency.source(), mavenDependency.target())) {
                 throw new DependencyForbiddenException(mavenDependency.toString(), rule.description());
             }
         }
@@ -43,6 +39,7 @@ public class DefaultAllowRuleEnforcer extends RuleEnforcer {
     @Override
     protected List<ForbiddenDependency> getForbiddenPackageDependencies(final Collection<PackageClassification> packageClassifications, final List<Rule> rules) {
         final var forbiddenPackageDependencies = new ArrayList<ForbiddenDependency>();
+        final var ruleEvaluator = getRuleEvaluator();
 
         for (final var source : packageClassifications) {
             for (final var target : packageClassifications) {
