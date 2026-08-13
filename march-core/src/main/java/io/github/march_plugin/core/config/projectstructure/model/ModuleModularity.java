@@ -58,6 +58,11 @@ public final class ModuleModularity extends Modularity {
         return childModules.isEmpty() ? getChildPackages() : childModules;
     }
 
+    @Override
+    public String toString() {
+        return "Module Modularity with convention: " + moduleConvention.toString();
+    }
+
     public static class Builder extends Modularity.Builder<Builder> {
         private final ModuleConvention convention;
 

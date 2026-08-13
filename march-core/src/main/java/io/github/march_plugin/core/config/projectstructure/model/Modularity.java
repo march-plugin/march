@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -92,7 +93,18 @@ public abstract class Modularity {
         return children.stream()
                 .filter(c -> c.getCasePartitions().contains(partition))
                 .findFirst()
-                .orElseThrow(() -> new NoChildModularityCaseFoundException(partition.toString()));
+                .orElseThrow(() -> new NoChildModularityCaseFoundException(partition.toString(), partition.getName(), describeAvailableCases(children)));
+    }
+
+    private static String describeAvailableCases(final List<? extends Modularity> children) {
+        return children.stream()
+                .map(Modularity::getCasePartitions)
+                .filter(Objects::nonNull)
+                .flatMap(g -> g.getPartitions().stream())
+                .map(Dimension.Partition::toString)
+                .distinct()
+                .sorted()
+                .collect(Collectors.joining(", "));
     }
 
     /**
@@ -144,7 +156,7 @@ public abstract class Modularity {
      */
     protected void validateChildren() {
         if (getDimension() == null) {
-            throw new EmptyModularityDimensionException();
+            throw new EmptyModularityDimensionException(toString());
         }
 
         final var children = getChildren();

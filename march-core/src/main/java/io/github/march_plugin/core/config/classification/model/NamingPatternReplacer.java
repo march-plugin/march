@@ -31,7 +31,7 @@ public final class NamingPatternReplacer {
             final var replacement = replacementFunction.apply(matcher.group(1));
 
             if (replacement == null) {
-                throw new MissingPlaceholderReplacementException(matcher.group(1));
+                throw new MissingPlaceholderReplacementException(matcher.group(1), namingConvention);
             }
 
             stringBuilder.append(replacement);
