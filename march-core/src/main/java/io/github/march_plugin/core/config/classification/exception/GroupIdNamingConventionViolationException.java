@@ -9,10 +9,11 @@ public class GroupIdNamingConventionViolationException extends RuntimeException 
      * Constructs the exception.
      *
      * @param artifactId the artifact id of the module.
-     * @param groupId the group id of the module.
-     * @param expectedName the expected group id.
+     * @param actualGroupId the actual group id of the module.
+     * @param expectedGroupId the group id computed from the project structure conventions.
      */
-    public GroupIdNamingConventionViolationException(final String artifactId, final String groupId, final String expectedName) {
-        super("Naming Convention violated: Expected artifact '" + artifactId + "' with groupId '" + groupId + "' to have groupId '" + expectedName + "'");
+    public GroupIdNamingConventionViolationException(final String artifactId, final String actualGroupId, final String expectedGroupId) {
+        super(("Naming convention violated for module '%s': its groupId is '%s', but the project structure conventions of march config expect '%s'")
+                .formatted(artifactId, actualGroupId, expectedGroupId));
     }
 }

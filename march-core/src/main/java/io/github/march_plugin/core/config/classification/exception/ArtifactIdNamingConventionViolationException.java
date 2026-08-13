@@ -8,10 +8,12 @@ public class ArtifactIdNamingConventionViolationException extends RuntimeExcepti
     /**
      * Constructs the exception.
      *
-     * @param artifactId the artifact id of the module.
-     * @param expectedName the expected artifact id.
+     * @param actualArtifactId the actual artifact id of the module.
+     * @param expectedArtifactId the artifact id computed from the project structure conventions.
      */
-    public ArtifactIdNamingConventionViolationException(final String artifactId, final String expectedName) {
-        super("Naming Convention violated: Expected artifact '" + artifactId + "' to have artifactId '" + expectedName + "'");
+    public ArtifactIdNamingConventionViolationException(final String actualArtifactId, final String expectedArtifactId) {
+        super(("Naming convention violated: module '%s' has artifactId '%s', but the project structure of march config expects artifactId '%s'. "
+                + "Either rename the module, or fix the 'artifactId' attribute/placeholder on the modularity node.")
+                .formatted(actualArtifactId, actualArtifactId, expectedArtifactId));
     }
 }

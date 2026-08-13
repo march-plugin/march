@@ -90,4 +90,24 @@ public final class ModuleConvention {
 
         return new ModuleConvention(groupId, artifactId, child.rootPackage);
     }
+
+    @Override
+    public String toString() {
+
+        final var sb = new StringBuilder();
+
+        if (groupId != null) {
+            sb.append("GroupId: ").append(groupId).append(";");
+        }
+
+        if (artifactId != null) {
+            sb.append("ArtifactId: ").append(artifactId).append(";");
+        }
+
+        if (rootPackage != null) {
+            sb.append("RootPackage: ").append(rootPackage).append(";");
+        }
+
+        return sb.toString();
+    }
 }

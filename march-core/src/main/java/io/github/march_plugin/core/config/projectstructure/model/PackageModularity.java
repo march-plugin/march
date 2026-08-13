@@ -26,6 +26,11 @@ public final class PackageModularity extends Modularity {
         return getChildPackages();
     }
 
+    @Override
+    public String toString() {
+        return "Package Modularity with convention: " + convention.toString();
+    }
+
     public static class Builder extends Modularity.Builder<Builder> {
         private final PackageConvention convention;
 
