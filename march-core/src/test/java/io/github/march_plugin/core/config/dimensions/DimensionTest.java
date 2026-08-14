@@ -67,6 +67,18 @@ public class DimensionTest {
     }
 
     @Test
+    void getPartitionsShouldPreserveDeclarationOrder() {
+        final var dimensionBuilder = new Dimension.Builder("layer", "Technical layer");
+        final var presentation = dimensionBuilder.addPartition("presentation");
+        final var service = dimensionBuilder.addPartition("service");
+        final var business = dimensionBuilder.addPartition("business");
+        final var dbAccess = dimensionBuilder.addPartition("db-access");
+        final var dimension = dimensionBuilder.build();
+
+        assertThat(dimension.getPartitions()).containsExactly(presentation, service, business, dbAccess);
+    }
+
+    @Test
     void dimensionMustHaveAtLeastTwoPartitions() {
         final var dimensionBuilder = new Dimension.Builder("layer", "Technical layer");
         dimensionBuilder.addPartition("service");

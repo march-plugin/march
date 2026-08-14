@@ -7,7 +7,7 @@ import io.github.march_plugin.core.config.dimensions.exceptions.PartitionNotFoun
 import io.github.march_plugin.core.config.dimensions.exceptions.InvalidDimensionNameException;
 import io.github.march_plugin.core.config.dimensions.exceptions.InvalidPartitionCountException;
 
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 
@@ -34,7 +34,7 @@ public final class Dimension implements Comparable<Dimension> {
 
         this.name = name;
         this.description = description;
-        this.partitions = new HashSet<>();
+        this.partitions = new LinkedHashSet<>();
     }
 
     @Override
