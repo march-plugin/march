@@ -218,6 +218,49 @@ module) are only ever classified on packages, never on whole modules — a rule 
 dimension needs `package_only`, plus a separate, coarser `module_only` rule (using only
 dimensions modules actually have) to legalize the corresponding `pom.xml` dependency.
 
+## Inspecting your configuration
+
+This chapter shows how to use command line tools to analyze your march configuration.
+
+### `march:tree`
+
+Prints the classification tree of all modules and packages from `dimensions`, `projectStructure`,
+`packageTemplates` and `modules`.
+
+```
+mvn march:tree
+```
+
+### `march:matrix`
+
+Prints a permission matrix across an abstract set of dimension combinations: for every pair
+of classifications, whether a dependency between them is `Allowed`, `Forbidden`, or
+`PartiallyAllowed` (with the residual rule condition shown), using the same three-valued
+rule reduction used at build time. This is useful for spotting a rule that reaches further,
+or less far, than intended.
+
+```
+mvn march:matrix
+mvn march:matrix -Dclassifications="{domain;layer}"
+mvn march:matrix -Dclassifications="{domain(article;order);layer(api;impl)}" -Dmarch.columnWidth=10
+```
+
+- `-Dclassifications`: which dimensions (and optionally which of their partitions) to include,
+  e.g. `{domain(article;order);layer}`. Defaults to every configured dimension with all of its
+  partitions.
+- `-Dmarch.columnWidth`: characters shown per column before a label truncates (default `5`).
+  Raise it if truncated partition names collide into the same column, e.g. `adapterIn` and
+  `adapterOut` both showing as `adapt`.
+- `-Dmarch.matrixScope=module|package`: which of the two build-time checks (Maven module
+  graph vs. bytecode) to evaluate against.
+
+A rule's `<scope>` (see [Rules and strategy](#rules-and-strategy)) matters here too: the matrix
+only evaluates rules that would actually apply at the granularity being asked about. If any
+requested dimension is only ever classified on packages (never on a whole module), the query
+is treated as package-level and `module_only` rules are excluded; otherwise it defaults to
+module-level and `package_only` rules are excluded. `-Dmarch.matrixScope` overrides this when
+the requested dimensions could reasonably be either.
+
 ## License
 
 Apache License 2.0 — see [LICENSE](LICENSE).
