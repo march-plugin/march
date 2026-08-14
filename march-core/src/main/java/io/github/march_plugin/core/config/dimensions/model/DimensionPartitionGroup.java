@@ -46,6 +46,16 @@ public final class DimensionPartitionGroup {
         private final Set<Dimension.Partition> partitions = new HashSet<>();
 
         /**
+         * Builds a group containing all of the given dimension's partitions.
+         *
+         * @param dimension the dimension whose full set of partitions to include
+         * @return the built group
+         */
+        public static DimensionPartitionGroup of(final Dimension dimension) {
+            return new DimensionPartitionGroup(dimension, dimension.getPartitions());
+        }
+
+        /**
          * Adds a partition to the classification.
          *
          * @param partitionToAdd the partition to add.
