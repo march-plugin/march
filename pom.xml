@@ -34,6 +34,7 @@
         <jackson.version>3.0.4</jackson.version>
         <maven-plugin-annotations.version>3.15.2</maven-plugin-annotations.version>
         <maven-plugin.version>3.9.12</maven-plugin.version>
+        <maven-shared-utils.version>3.4.2</maven-shared-utils.version>
     </properties>
 
     <licenses>
@@ -122,6 +123,11 @@
                 <artifactId>maven-core</artifactId>
                 <version>${maven-plugin.version}</version>
                 <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.maven.shared</groupId>
+                <artifactId>maven-shared-utils</artifactId>
+                <version>${maven-shared-utils.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
