@@ -226,9 +226,11 @@ This chapter shows how to use command line tools to analyze your march configura
 
 Prints the classification tree of all modules and packages from `dimensions`, `projectStructure`,
 `packageTemplates` and `modules`.
+Use `-Dmarch.showInherited=true` to include inherited classifications.
 
 ```
 mvn march:tree
+mvn march:tree -Dmarch.showInherited=true
 ```
 
 ### `march:matrix`
