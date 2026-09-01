@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.config.classification.exception;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when an excepted dimension is not classified.
  */
-public class DimensionNotClassifiedException extends RuntimeException {
+public class DimensionNotClassifiedException extends MarchViolationException {
 
     /**
      * Constructs the exception.

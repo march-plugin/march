@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.enforcement.project.exceptions;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when the root package of a module is specified, but java root does not exist.
  */
-public class JavaRootPackageNotFoundException extends RuntimeException {
+public class JavaRootPackageNotFoundException extends MarchViolationException {
 
     /**
      * Constructs the exception.

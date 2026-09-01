@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.enforcement.project.exceptions;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when a module does not have a clean root package path.
  */
-public class CleanRootPathViolationException extends RuntimeException {
+public class CleanRootPathViolationException extends MarchViolationException {
 
     /**
      * Constructs the exception.

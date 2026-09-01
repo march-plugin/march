@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.config.classification.exception;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when the root package of a module does not match the configured naming convention.
  */
-public class RootPackageNamingConventionViolationException extends RuntimeException {
+public class RootPackageNamingConventionViolationException extends MarchViolationException {
 
     /**
      * Constructs the exception.

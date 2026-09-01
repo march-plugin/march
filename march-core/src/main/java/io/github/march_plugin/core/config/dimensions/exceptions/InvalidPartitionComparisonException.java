@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.config.dimensions.exceptions;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when trying to compare two partitions of different dimensions.
  */
-public class InvalidPartitionComparisonException extends RuntimeException {
+public class InvalidPartitionComparisonException extends MarchViolationException {
 
     /**
      * Constructs the exception.

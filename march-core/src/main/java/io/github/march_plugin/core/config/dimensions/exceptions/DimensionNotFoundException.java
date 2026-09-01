@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.config.dimensions.exceptions;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when a rule is not specified in configuration.
  */
-public class DimensionNotFoundException extends RuntimeException {
+public class DimensionNotFoundException extends MarchViolationException {
 
     /**
      * Constructs the exception.

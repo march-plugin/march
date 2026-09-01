@@ -1,9 +1,11 @@
 package io.github.march_plugin.configuration.initializer.exception;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when a classified module declares both child modules (or virtual modules) and a package template.
  */
-public class ConflictingModuleChildrenException extends RuntimeException {
+public class ConflictingModuleChildrenException extends MarchViolationException {
 
     /**
      * Constructs the exception.

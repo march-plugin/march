@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.config.projectstructure.exception;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when the project structure defines two children with the same case partition.
  */
-public class DuplicateCasePartitionException extends RuntimeException {
+public class DuplicateCasePartitionException extends MarchViolationException {
 
     /**
      * Constructs the exception.

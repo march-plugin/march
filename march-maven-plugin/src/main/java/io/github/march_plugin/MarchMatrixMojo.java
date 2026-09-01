@@ -15,8 +15,10 @@ import io.github.march_plugin.core.config.rules.evaluation.DependencyPermission;
 import io.github.march_plugin.core.config.rules.evaluation.ast.EvaluatedLogicalExpression;
 import io.github.march_plugin.core.config.rules.model.Rule;
 import io.github.march_plugin.core.config.rules.parser.RuleDefinitionCompiler;
+import io.github.march_plugin.core.exceptions.MarchViolationException;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
@@ -104,48 +106,52 @@ public class MarchMatrixMojo extends AbstractMojo {
     private final static int firstColWidth = 20;
 
     @Override
-    public void execute() throws MojoExecutionException {
+    public void execute() throws MojoExecutionException, MojoFailureException {
         if (!project.isExecutionRoot()) {
             return;
         }
 
         validateColumnWidth(maxPartitionCharCount);
 
-        final var marchConfigDto = new MarchConfigFileReader(configFile).readConfig();
+        try {
+            final var marchConfigDto = new MarchConfigFileReader(configFile).readConfig();
 
-        final var dimensionRegistry = new DimensionRegistryInitializer().build(marchConfigDto.dimensions());
-        final var ruleRegistry = new RuleRegistryInitializer(new RuleDefinitionCompiler(dimensionRegistry)).build(marchConfigDto.rules());
-        final var projectStructureRoot = new ProjectStructureInitializer(dimensionRegistry).build(marchConfigDto.projectStructure());
+            final var dimensionRegistry = new DimensionRegistryInitializer().build(marchConfigDto.dimensions());
+            final var ruleRegistry = new RuleRegistryInitializer(new RuleDefinitionCompiler(dimensionRegistry)).build(marchConfigDto.rules());
+            final var projectStructureRoot = new ProjectStructureInitializer(dimensionRegistry).build(marchConfigDto.projectStructure());
 
-        final var partitions = new MatrixClassificationParser().parse(matrixInput, dimensionRegistry);
-        final var flatPartitions = partitions
-                .stream()
-                .flatMap(Set::stream)
-                .toList();
-        final var orderedDimensions = partitions
-                .stream()
-                .map(x -> x.stream().findFirst().get().getDimension())
-                .distinct()
-                .toList();
-        final var dimensions = new HashSet<>(orderedDimensions);
-        final var combinations = new PossibleCombinationsFinder().findCombinations(projectStructureRoot, dimensions);
-        final var filteredCombinations = combinations
-                .stream()
-                .filter(flatPartitions::containsAll)
-                .map(set -> orderPartitions(set, orderedDimensions))
-                .sorted(MarchMatrixMojo::compareCombinations)
-                .toList();
+            final var partitions = new MatrixClassificationParser().parse(matrixInput, dimensionRegistry);
+            final var flatPartitions = partitions
+                    .stream()
+                    .flatMap(Set::stream)
+                    .toList();
+            final var orderedDimensions = partitions
+                    .stream()
+                    .map(x -> x.stream().findFirst().get().getDimension())
+                    .distinct()
+                    .toList();
+            final var dimensions = new HashSet<>(orderedDimensions);
+            final var combinations = new PossibleCombinationsFinder().findCombinations(projectStructureRoot, dimensions);
+            final var filteredCombinations = combinations
+                    .stream()
+                    .filter(flatPartitions::containsAll)
+                    .map(set -> orderPartitions(set, orderedDimensions))
+                    .sorted(MarchMatrixMojo::compareCombinations)
+                    .toList();
 
-        if (filteredCombinations.isEmpty()) {
-            throw new MojoExecutionException(noCombinationMessage(dimensions));
+            if (filteredCombinations.isEmpty()) {
+                throw new MojoExecutionException(noCombinationMessage(dimensions));
+            }
+
+            final var packageOnlyDimensions = new DimensionGranularityFinder().findPackageOnlyDimensions(projectStructureRoot, dimensions);
+            final var resolvedScope = resolveMatrixScope(matrixScope, packageOnlyDimensions);
+            final var scopedRuleRegistry = scopedRuleRegistry(ruleRegistry, resolvedScope);
+
+            ruleStrategyResolver = new RuleStrategyResolver(scopedRuleRegistry.getRuleStrategy());
+            renderTable(dimensionRegistry, projectStructureRoot, scopedRuleRegistry, resolvedScope, filteredCombinations);
+        } catch (final MarchViolationException e) {
+            throw new MojoFailureException(e.getMessage(), e);
         }
-
-        final var packageOnlyDimensions = new DimensionGranularityFinder().findPackageOnlyDimensions(projectStructureRoot, dimensions);
-        final var resolvedScope = resolveMatrixScope(matrixScope, packageOnlyDimensions);
-        final var scopedRuleRegistry = scopedRuleRegistry(ruleRegistry, resolvedScope);
-
-        ruleStrategyResolver = new RuleStrategyResolver(scopedRuleRegistry.getRuleStrategy());
-        renderTable(dimensionRegistry, projectStructureRoot, scopedRuleRegistry, resolvedScope, filteredCombinations);
     }
 
     static MatrixScope resolveMatrixScope(final String requestedScope, final Set<Dimension> packageOnlyDimensions) throws MojoExecutionException {

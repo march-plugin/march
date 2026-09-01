@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.config.rules.exceptions;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when a comparison is logically redundant (always true or always false).
  */
-public class RedundantComparisonException extends RuntimeException {
+public class RedundantComparisonException extends MarchViolationException {
 
     /**
      * Constructs the exception.

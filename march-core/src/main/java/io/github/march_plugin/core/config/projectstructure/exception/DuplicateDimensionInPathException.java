@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.config.projectstructure.exception;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when a dimension appears twice in modularity path.
  */
-public class DuplicateDimensionInPathException extends RuntimeException {
+public class DuplicateDimensionInPathException extends MarchViolationException {
 
     /**
      * Constructs the exception.

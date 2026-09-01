@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.config.projectstructure.exception;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when no child modularity is defined for a specific partition.
  */
-public class NoChildModularityCaseFoundException extends RuntimeException {
+public class NoChildModularityCaseFoundException extends MarchViolationException {
 
     /**
      * Constructs the exception.

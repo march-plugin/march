@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.config.package_templates.exception;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when a package template is not specified in configuration.
  */
-public class PackageTemplateNotFoundException extends RuntimeException {
+public class PackageTemplateNotFoundException extends MarchViolationException {
 
     /**
      * Constructs the exception.

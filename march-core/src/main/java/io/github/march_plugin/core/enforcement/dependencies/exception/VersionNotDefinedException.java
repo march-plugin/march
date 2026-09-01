@@ -1,11 +1,12 @@
 package io.github.march_plugin.core.enforcement.dependencies.exception;
 
 import io.github.march_plugin.core.config.classification.model.ModuleCoordinates;
+import io.github.march_plugin.core.exceptions.MarchViolationException;
 
 /**
  * Thrown when a dependency in dependency management does not define the version.
  */
-public class VersionNotDefinedException extends RuntimeException {
+public class VersionNotDefinedException extends MarchViolationException {
 
     /**
      * Constructs the exception.

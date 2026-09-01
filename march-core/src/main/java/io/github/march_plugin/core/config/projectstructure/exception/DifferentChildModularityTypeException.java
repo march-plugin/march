@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.config.projectstructure.exception;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when a modularity contains children of both types package modularity and module modularity.
  */
-public class DifferentChildModularityTypeException extends RuntimeException {
+public class DifferentChildModularityTypeException extends MarchViolationException {
 
     /**
      * Constructs the exception.

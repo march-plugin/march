@@ -8,7 +8,9 @@ import io.github.march_plugin.configuration.initializer.ProjectStructureInitiali
 import io.github.march_plugin.core.config.classification.model.ClassifiedComponent;
 import io.github.march_plugin.core.config.classification.model.ClassifiedVirtualModuleReference;
 import io.github.march_plugin.core.config.classification.model.ModuleCoordinates;
+import io.github.march_plugin.core.exceptions.MarchViolationException;
 import org.apache.maven.plugin.AbstractMojo;
+import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
@@ -39,23 +41,27 @@ public class MarchTreeMojo extends AbstractMojo {
     private File configFile;
 
     @Override
-    public void execute() {
+    public void execute() throws MojoFailureException {
         if (!project.isExecutionRoot()) {
             return;
         }
 
-        final var marchConfigDto = new MarchConfigFileReader(configFile).readConfig();
-        final var dimensionRegistry = new DimensionRegistryInitializer().build(marchConfigDto.dimensions());
-        final var projectStructureRoot = new ProjectStructureInitializer(dimensionRegistry).build(marchConfigDto.projectStructure());
-        final var packageTemplateRegistry = new PackageTemplateRegistryInitializer().build(marchConfigDto.packageTemplates());
-        final var classificationRegistry = new ClassificationRegistryInitializer(projectStructureRoot, packageTemplateRegistry).build(marchConfigDto.modules().module());
+        try {
+            final var marchConfigDto = new MarchConfigFileReader(configFile).readConfig();
+            final var dimensionRegistry = new DimensionRegistryInitializer().build(marchConfigDto.dimensions());
+            final var projectStructureRoot = new ProjectStructureInitializer(dimensionRegistry).build(marchConfigDto.projectStructure());
+            final var packageTemplateRegistry = new PackageTemplateRegistryInitializer().build(marchConfigDto.packageTemplates());
+            final var classificationRegistry = new ClassificationRegistryInitializer(projectStructureRoot, packageTemplateRegistry).build(marchConfigDto.modules().module());
 
 
-        getLog().info("");
-        getLog().info(MessageUtils.buffer().strong("March Module Classification Tree").build());
+            getLog().info("");
+            getLog().info(MessageUtils.buffer().strong("March Module Classification Tree").build());
 
-        final var root = classificationRegistry.getClassifiedModule(new ModuleCoordinates(project.getGroupId(), project.getArtifactId()));
-        renderTree(root, "", true);
+            final var root = classificationRegistry.getClassifiedModule(new ModuleCoordinates(project.getGroupId(), project.getArtifactId()));
+            renderTree(root, "", true);
+        } catch (final MarchViolationException e) {
+            throw new MojoFailureException(e.getMessage(), e);
+        }
     }
 
     private void renderTree(final ClassifiedComponent component, final String indent, final boolean isLast) {

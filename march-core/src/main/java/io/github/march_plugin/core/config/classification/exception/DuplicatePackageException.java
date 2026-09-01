@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.config.classification.exception;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when a package is already classified.
  */
-public class DuplicatePackageException extends RuntimeException {
+public class DuplicatePackageException extends MarchViolationException {
 
     /**
      * Constructs the exception.

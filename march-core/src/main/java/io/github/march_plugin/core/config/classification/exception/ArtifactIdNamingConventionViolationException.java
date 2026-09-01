@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.config.classification.exception;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when the artifactId of a module does not match the configured naming convention.
  */
-public class ArtifactIdNamingConventionViolationException extends RuntimeException {
+public class ArtifactIdNamingConventionViolationException extends MarchViolationException {
 
     /**
      * Constructs the exception.

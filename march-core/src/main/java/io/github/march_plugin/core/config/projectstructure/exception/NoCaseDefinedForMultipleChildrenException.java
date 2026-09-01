@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.config.projectstructure.exception;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when case partitions are not defined when parent has multiple children.
  */
-public class NoCaseDefinedForMultipleChildrenException extends RuntimeException {
+public class NoCaseDefinedForMultipleChildrenException extends MarchViolationException {
 
     /**
      * Constructs the exception.

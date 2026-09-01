@@ -1,6 +1,8 @@
 package io.github.march_plugin.core.config.rules.exceptions;
 
-public class NullComparisonException extends RuntimeException {
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
+public class NullComparisonException extends MarchViolationException {
 
     /**
      * Constructs the exception.

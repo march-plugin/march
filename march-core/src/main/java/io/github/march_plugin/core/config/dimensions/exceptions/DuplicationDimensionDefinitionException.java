@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.config.dimensions.exceptions;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when a dimension is defined twice in the configuration.
  */
-public class DuplicationDimensionDefinitionException extends RuntimeException {
+public class DuplicationDimensionDefinitionException extends MarchViolationException {
 
     /**
      * Constructs the exception.

@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.config.rules.exceptions;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when an IN expression contains duplicate partitions.
  */
-public class DuplicatePartitionException extends RuntimeException {
+public class DuplicatePartitionException extends MarchViolationException {
 
     /**
      * Constructs the exception.

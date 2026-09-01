@@ -1,11 +1,12 @@
 package io.github.march_plugin.core.enforcement.dependencies.exception;
 
 import io.github.march_plugin.core.config.classification.model.ModuleCoordinates;
+import io.github.march_plugin.core.exceptions.MarchViolationException;
 
 /**
  * Thrown when a dependency defines the module version inline.
  */
-public class ForbiddenInlineVersionException extends RuntimeException {
+public class ForbiddenInlineVersionException extends MarchViolationException {
 
     /**
      * Constructs the exception.
