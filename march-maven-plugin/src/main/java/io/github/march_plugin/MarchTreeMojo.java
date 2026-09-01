@@ -6,6 +6,8 @@ import io.github.march_plugin.configuration.initializer.DimensionRegistryInitial
 import io.github.march_plugin.configuration.initializer.PackageTemplateRegistryInitializer;
 import io.github.march_plugin.configuration.initializer.ProjectStructureInitializer;
 import io.github.march_plugin.core.config.classification.model.ClassifiedComponent;
+import io.github.march_plugin.core.config.classification.model.ClassifiedConcreteModule;
+import io.github.march_plugin.core.config.classification.model.ClassifiedPackage;
 import io.github.march_plugin.core.config.classification.model.ClassifiedVirtualModuleReference;
 import io.github.march_plugin.core.config.classification.model.ModuleCoordinates;
 import io.github.march_plugin.core.config.dimensions.model.Dimension;
@@ -38,6 +40,8 @@ import java.util.List;
 @Mojo(name = "tree", aggregator = true)
 public class MarchTreeMojo extends AbstractMojo {
 
+    private static final String MODULE_PREFIX_COLOR = "[38;2;255;140;0m"; // vivid orange (true color)
+    private static final String PACKAGE_PREFIX_COLOR = "[32m"; // green
     private static final String MODULE_COLOR = "[33m"; // yellow
     private static final String OWN_DIMENSION_COLOR = "[35m"; // purple
     private static final String OWN_PARTITION_VALUE_COLOR = "[94m"; // light blue
@@ -83,13 +87,23 @@ public class MarchTreeMojo extends AbstractMojo {
 
     private void renderTree(final ClassifiedComponent component, final String indent, final boolean isLast, final List<Dimension.Partition> ancestorPath) {
         final var label = formatClassification(component, ancestorPath);
-        getLog().info(indent + "|--" + colorize(component.getModuleCoordinates().getArtifactId(), MODULE_COLOR) + " " + label);
+        final var isPackage = component instanceof ClassifiedPackage;
+        final var name = isPackage ? ((ClassifiedPackage) component).getPackageHierarchy().getSimpleName() : component.getModuleCoordinates().getArtifactId();
+        final var prefix = isPackage ? colorize("P ", PACKAGE_PREFIX_COLOR) : colorize("M ", MODULE_PREFIX_COLOR);
+        getLog().info(indent + "|--" + prefix + colorize(name, MODULE_COLOR) + " " + label);
+
+        final var childIndent = indent + (isLast ? "    " : "|   ");
+        var packageChildIndent = childIndent;
+        if (component instanceof ClassifiedConcreteModule ccm && ccm.getRootPackage() != null) {
+            getLog().info(childIndent + "|--" + colorize(ccm.getRootPackage().toString(), PACKAGE_PREFIX_COLOR));
+            packageChildIndent = childIndent + "    ";
+        }
 
         final var ownPath = component.getPartition() == null ? ancestorPath : append(ancestorPath, component.getPartition());
         final var children = component.getChildren();
 
         for (var i = 0; i < children.size(); i++) {
-            renderTree(children.get(i), indent + (isLast ? "    " : "|   "), i == children.size() - 1, ownPath);
+            renderTree(children.get(i), packageChildIndent, i == children.size() - 1, ownPath);
         }
     }
 
