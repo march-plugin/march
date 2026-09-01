@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.config.projectstructure.exception;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when a modularity does not specify a dimension but has children.
  */
-public class EmptyModularityDimensionException extends RuntimeException {
+public class EmptyModularityDimensionException extends MarchViolationException {
 
     /**
      * Constructs the exception.

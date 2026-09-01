@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.config.classification.exception;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when adding children of forbidden type to ClassifiedPackage.
  */
-public class ClassifiedPackageChildrenException extends RuntimeException {
+public class ClassifiedPackageChildrenException extends MarchViolationException {
 
     /**
      * Constructs the exception.

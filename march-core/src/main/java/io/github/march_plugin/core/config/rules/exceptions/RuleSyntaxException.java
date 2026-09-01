@@ -1,11 +1,12 @@
 package io.github.march_plugin.core.config.rules.exceptions;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
 import java.util.List;
 
 /**
  * Thrown when a rule cannot be parsed.
  */
-public class RuleSyntaxException extends RuntimeException {
+public class RuleSyntaxException extends MarchViolationException {
 
     /**
      * Constructs the exception.

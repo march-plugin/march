@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.config.projectstructure.exception;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when a package name is empty.
  */
-public class EmptyPackageNameException extends RuntimeException {
+public class EmptyPackageNameException extends MarchViolationException {
 
     /**
      * Constructs the exception.

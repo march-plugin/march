@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.config.classification.exception;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when a component does not specify a partition.
  */
-public class ComponentPartitionNotDefinedException extends RuntimeException {
+public class ComponentPartitionNotDefinedException extends MarchViolationException {
 
     /**
      * Constructs the exception.

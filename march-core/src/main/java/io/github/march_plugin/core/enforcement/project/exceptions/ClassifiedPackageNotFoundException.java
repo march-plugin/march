@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.enforcement.project.exceptions;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when a mandatory classified package does not exist.
  */
-public class ClassifiedPackageNotFoundException extends RuntimeException {
+public class ClassifiedPackageNotFoundException extends MarchViolationException {
 
     /**
      * Constructs the exception.

@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.enforcement.project.exceptions;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when a classified module does not exist.
  */
-public class ClassifiedModuleDoesNotExistException extends RuntimeException {
+public class ClassifiedModuleDoesNotExistException extends MarchViolationException {
 
     /**
      * Constructs the exception.

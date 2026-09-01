@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.config.dimensions.exceptions;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when a partition is defined twice within group.
  */
-public class GroupDuplicationPartitionDefinitionException extends RuntimeException {
+public class GroupDuplicationPartitionDefinitionException extends MarchViolationException {
 
     /**
      * Constructs the exception.

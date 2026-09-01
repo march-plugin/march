@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.enforcement.project.exceptions;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when a module contains code but has no root package specified.
  */
-public class ModuleContainsForbiddenCodeException extends RuntimeException {
+public class ModuleContainsForbiddenCodeException extends MarchViolationException {
 
     /**
      * Constructs the exception.

@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.config.projectstructure.exception;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when the dimension of partitions in case does not match the parent partition dimension.
  */
-public class UnequalCaseDimensionException extends RuntimeException {
+public class UnequalCaseDimensionException extends MarchViolationException {
 
     /**
      * Constructs the exception.

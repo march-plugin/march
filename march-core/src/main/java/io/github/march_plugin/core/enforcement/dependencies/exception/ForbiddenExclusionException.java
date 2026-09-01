@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.enforcement.dependencies.exception;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when a dependency has a forbidden exclusion.
  */
-public class ForbiddenExclusionException extends RuntimeException {
+public class ForbiddenExclusionException extends MarchViolationException {
 
     /**
      * Constructs the exception.

@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.enforcement.rules.exceptions;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when a package dependency violates a specific rule.
  */
-public class PackageDependencyForbiddenException extends RuntimeException {
+public class PackageDependencyForbiddenException extends MarchViolationException {
 
     /**
      * Constructs the exception.

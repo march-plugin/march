@@ -11,8 +11,10 @@ import io.github.march_plugin.core.config.rules.parser.RuleDefinitionCompiler;
 import io.github.march_plugin.core.enforcement.dependencies.ArchUnitPackageDependencyEvaluator;
 import io.github.march_plugin.core.enforcement.dependencies.ModuleDependencyEnforcer;
 import io.github.march_plugin.core.enforcement.project.ProjectComponentEnforcer;
+import io.github.march_plugin.core.exceptions.MarchViolationException;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -41,7 +43,7 @@ public class MarchValidateMojo extends AbstractMojo {
     private String configFile;
 
     @Override
-    public void execute() throws MojoExecutionException {
+    public void execute() throws MojoExecutionException, MojoFailureException {
         // Runs once per reactor build, at the LAST project Maven builds (not the execution root):
         // by then every reactor module has already been compiled, so the ArchUnit-based checks below
         // can see complete bytecode for the whole multi-module project instead of racing ahead of it.
@@ -61,30 +63,33 @@ public class MarchValidateMojo extends AbstractMojo {
             throw new MojoExecutionException("No march-config.xml found.");
         }
 
-        // Build config
-        final var marchConfigDto = new MarchConfigFileReader(resolvedConfigFile).readConfig();
+        try {
+            // Build config
+            final var marchConfigDto = new MarchConfigFileReader(resolvedConfigFile).readConfig();
 
-        final var dimensionRegistry = new DimensionRegistryInitializer().build(marchConfigDto.dimensions());
-        final var ruleRegistry = new RuleRegistryInitializer(new RuleDefinitionCompiler(dimensionRegistry)).build(marchConfigDto.rules());
-        final var projectStructureRoot = new ProjectStructureInitializer(dimensionRegistry).build(marchConfigDto.projectStructure());
-        final var packageTemplateRegistry = new PackageTemplateRegistryInitializer().build(marchConfigDto.packageTemplates());
-        final var classificationRegistry = new ClassificationRegistryInitializer(projectStructureRoot, packageTemplateRegistry).build(marchConfigDto.modules().module());
-
-
-        // Process project
-        final var projectModuleRegistry = new ProjectModuleRegistryInitializer().initialize(reactorProjects);
-
-        // Validate that configured modules exist and have configured structure
-        new ProjectComponentEnforcer().validateComponentExistence(projectModuleRegistry, classificationRegistry);
-
-        // Validate dependency definitions
-        new ModuleDependencyEnforcer().validateDependencyDefinitions(projectModuleRegistry, classificationRegistry);
+            final var dimensionRegistry = new DimensionRegistryInitializer().build(marchConfigDto.dimensions());
+            final var ruleRegistry = new RuleRegistryInitializer(new RuleDefinitionCompiler(dimensionRegistry)).build(marchConfigDto.rules());
+            final var projectStructureRoot = new ProjectStructureInitializer(dimensionRegistry).build(marchConfigDto.projectStructure());
+            final var packageTemplateRegistry = new PackageTemplateRegistryInitializer().build(marchConfigDto.packageTemplates());
+            final var classificationRegistry = new ClassificationRegistryInitializer(projectStructureRoot, packageTemplateRegistry).build(marchConfigDto.modules().module());
 
 
-        final var ruleStrategyResolver = new RuleStrategyResolver(ruleRegistry.getRuleStrategy());
-        final var ruleEnforcer = ruleStrategyResolver.getRuleEnforcer(new ArchUnitPackageDependencyEvaluator(projectModuleRegistry.getAllOutputDirs()));
-        ruleEnforcer.enforceRules(classificationRegistry, projectModuleRegistry, ruleRegistry);
+            // Process project
+            final var projectModuleRegistry = new ProjectModuleRegistryInitializer().initialize(reactorProjects);
 
+            // Validate that configured modules exist and have configured structure
+            new ProjectComponentEnforcer().validateComponentExistence(projectModuleRegistry, classificationRegistry);
+
+            // Validate dependency definitions
+            new ModuleDependencyEnforcer().validateDependencyDefinitions(projectModuleRegistry, classificationRegistry);
+
+
+            final var ruleStrategyResolver = new RuleStrategyResolver(ruleRegistry.getRuleStrategy());
+            final var ruleEnforcer = ruleStrategyResolver.getRuleEnforcer(new ArchUnitPackageDependencyEvaluator(projectModuleRegistry.getAllOutputDirs()));
+            ruleEnforcer.enforceRules(classificationRegistry, projectModuleRegistry, ruleRegistry);
+        } catch (final MarchViolationException e) {
+            throw new MojoFailureException(e.getMessage(), e);
+        }
     }
 
     private boolean isLastProjectInReactor() {

@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.config.classification.exception;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when a placeholder could not be replaced.
  */
-public class MissingPlaceholderReplacementException extends RuntimeException {
+public class MissingPlaceholderReplacementException extends MarchViolationException {
 
     /**
      * Constructs the exception.

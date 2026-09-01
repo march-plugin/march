@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.config.rules.exceptions;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when a rule does not have the correct syntax.
  */
-public class InvalidRuleDeclarationException extends RuntimeException {
+public class InvalidRuleDeclarationException extends MarchViolationException {
 
     /**
      * Constructs the exception.

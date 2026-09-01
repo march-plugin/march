@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.enforcement.project.exceptions;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when an existing package is not classified.
  */
-public class PackageNotClassifiedException extends RuntimeException {
+public class PackageNotClassifiedException extends MarchViolationException {
 
     /**
      * Constructs the exception.

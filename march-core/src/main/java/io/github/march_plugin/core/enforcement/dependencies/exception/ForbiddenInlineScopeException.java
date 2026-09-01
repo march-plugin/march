@@ -1,11 +1,12 @@
 package io.github.march_plugin.core.enforcement.dependencies.exception;
 
 import io.github.march_plugin.core.config.classification.model.ModuleCoordinates;
+import io.github.march_plugin.core.exceptions.MarchViolationException;
 
 /**
  * Thrown when a dependency defines the module scope inline.
  */
-public class ForbiddenInlineScopeException extends RuntimeException {
+public class ForbiddenInlineScopeException extends MarchViolationException {
 
     /**
      * Constructs the exception.

@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.config.rules.exceptions;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when a comparison involves incompatible dimensions.
  */
-public class DimensionMismatchException extends RuntimeException {
+public class DimensionMismatchException extends MarchViolationException {
 
     /**
      * Constructs the exception.

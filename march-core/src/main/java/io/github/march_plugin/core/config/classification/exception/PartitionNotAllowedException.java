@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.config.classification.exception;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when a component classifies a partition that is not allowed by parent.
  */
-public class PartitionNotAllowedException extends RuntimeException {
+public class PartitionNotAllowedException extends MarchViolationException {
 
     /**
      * Constructs the exception.

@@ -1,9 +1,11 @@
 package io.github.march_plugin.core.config.dimensions.exceptions;
 
+import io.github.march_plugin.core.exceptions.MarchViolationException;
+
 /**
  * Thrown when a rule references an undefined partition.
  */
-public class PartitionNotFoundException extends RuntimeException {
+public class PartitionNotFoundException extends MarchViolationException {
 
     /**
      * Constructs the exception.
