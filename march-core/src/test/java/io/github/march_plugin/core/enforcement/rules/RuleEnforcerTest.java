@@ -4,6 +4,7 @@ import io.github.march_plugin.core.config.classification.model.ClassificationReg
 import io.github.march_plugin.core.config.classification.model.ClassifiedPackage;
 import io.github.march_plugin.core.config.classification.model.PackageClassification;
 import io.github.march_plugin.core.config.rules.config.RuleRegistry;
+import io.github.march_plugin.core.config.rules.config.ScopeStrategy;
 import io.github.march_plugin.core.enforcement.dependencies.ForbiddenDependency;
 import io.github.march_plugin.core.enforcement.dependencies.PackageDependencyEvaluationResult;
 import io.github.march_plugin.core.enforcement.dependencies.PackageDependencyEvaluator;
@@ -35,7 +36,7 @@ class RuleEnforcerTest {
     }
 
     @Test
-    void shouldFilterRulesByScopeCorrectWhenEnforcingAll() {
+    void shouldPassAllRulesUnfilteredWhenEnforcingMavenDependencies() {
         final var globalRule = new Rule("Global", null, Rule.RuleScope.GLOBAL);
         final var packageRule = new Rule("Package Only", null, Rule.RuleScope.PACKAGE_ONLY);
         final var moduleRule = new Rule("Module Only", null, Rule.RuleScope.MODULE_ONLY);
@@ -45,11 +46,7 @@ class RuleEnforcerTest {
 
         invokeEnforceRules(enforcer, Set.of(mavenDependency), Collections.emptyList(), rules);
 
-        final var filteredMavenRules = enforcer.receivedMavenRules;
-
-        assertThat(filteredMavenRules).contains(globalRule);
-        assertThat(filteredMavenRules).contains(moduleRule);
-        assertThat(filteredMavenRules).doesNotContain(packageRule);
+        assertThat(enforcer.receivedMavenRules).containsExactlyInAnyOrder(globalRule, packageRule, moduleRule);
     }
 
     @Test
@@ -95,11 +92,11 @@ class RuleEnforcerTest {
         private String lastDetail;
 
         public TestRuleEnforcer(final PackageDependencyEvaluator evaluator) {
-            super(evaluator);
+            super(evaluator, ScopeStrategy.AUTOMATIC);
         }
 
         @Override
-        protected void enforceRulesOnMavenDependencies(final MavenDependency dependency, final List<Rule> rules) {
+        protected void enforceRulesOnMavenDependencies(final MavenDependency dependency, final List<Rule> rules, final Collection<PackageClassification> packageClassifications) {
             this.receivedMavenRules = rules;
         }
 

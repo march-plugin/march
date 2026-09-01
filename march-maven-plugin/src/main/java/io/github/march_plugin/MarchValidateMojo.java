@@ -84,7 +84,7 @@ public class MarchValidateMojo extends AbstractMojo {
             new ModuleDependencyEnforcer().validateDependencyDefinitions(projectModuleRegistry, classificationRegistry);
 
 
-            final var ruleStrategyResolver = new RuleStrategyResolver(ruleRegistry.getRuleStrategy());
+            final var ruleStrategyResolver = new RuleStrategyResolver(ruleRegistry.getRuleStrategy(), ruleRegistry.getScopeStrategy());
             final var ruleEnforcer = ruleStrategyResolver.getRuleEnforcer(new ArchUnitPackageDependencyEvaluator(projectModuleRegistry.getAllOutputDirs()));
             ruleEnforcer.enforceRules(classificationRegistry, projectModuleRegistry, ruleRegistry);
         } catch (final MarchViolationException e) {

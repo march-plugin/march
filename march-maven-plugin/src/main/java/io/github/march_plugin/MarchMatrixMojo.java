@@ -147,7 +147,7 @@ public class MarchMatrixMojo extends AbstractMojo {
             final var resolvedScope = resolveMatrixScope(matrixScope, packageOnlyDimensions);
             final var scopedRuleRegistry = scopedRuleRegistry(ruleRegistry, resolvedScope);
 
-            ruleStrategyResolver = new RuleStrategyResolver(scopedRuleRegistry.getRuleStrategy());
+            ruleStrategyResolver = new RuleStrategyResolver(scopedRuleRegistry.getRuleStrategy(), scopedRuleRegistry.getScopeStrategy());
             renderTable(dimensionRegistry, projectStructureRoot, scopedRuleRegistry, resolvedScope, filteredCombinations);
         } catch (final MarchViolationException e) {
             throw new MojoFailureException(e.getMessage(), e);
@@ -169,6 +169,7 @@ public class MarchMatrixMojo extends AbstractMojo {
         final var excludedScope = scope == MatrixScope.MODULE ? Rule.RuleScope.PACKAGE_ONLY : Rule.RuleScope.MODULE_ONLY;
         final var builder = new RuleRegistry.Builder();
         builder.setRuleStrategy(ruleRegistry.getRuleStrategy());
+        builder.setScopeStrategy(ruleRegistry.getScopeStrategy());
         ruleRegistry.getRules().stream()
                 .filter(r -> !r.ruleScope().equals(excludedScope))
                 .forEach(builder::addRule);

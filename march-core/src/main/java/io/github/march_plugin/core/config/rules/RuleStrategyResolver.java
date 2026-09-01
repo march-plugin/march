@@ -2,6 +2,7 @@ package io.github.march_plugin.core.config.rules;
 
 import io.github.march_plugin.core.config.projectstructure.model.ModuleModularity;
 import io.github.march_plugin.core.config.rules.config.RuleStrategy;
+import io.github.march_plugin.core.config.rules.config.ScopeStrategy;
 import io.github.march_plugin.core.config.rules.evaluation.DefaultAllowDependencyPermissionEvaluator;
 import io.github.march_plugin.core.config.rules.evaluation.DefaultDenyDependencyPermissionEvaluator;
 import io.github.march_plugin.core.config.rules.evaluation.DependencyPermissionEvaluator;
@@ -16,15 +17,17 @@ import io.github.march_plugin.core.enforcement.rules.RuleEnforcer;
 public class RuleStrategyResolver {
 
     private final RuleStrategy ruleStrategy;
+    private final ScopeStrategy scopeStrategy;
 
     /**
      * Builds the resolver.
      *
-     * @param ruleStrategy the configured strategy
+     * @param ruleStrategy the configured rule strategy
+     * @param scopeStrategy the configured scope strategy
      */
-    public RuleStrategyResolver(final RuleStrategy ruleStrategy) {
+    public RuleStrategyResolver(final RuleStrategy ruleStrategy, final ScopeStrategy scopeStrategy) {
         this.ruleStrategy = ruleStrategy;
-
+        this.scopeStrategy = scopeStrategy;
     }
 
     /**
@@ -35,8 +38,8 @@ public class RuleStrategyResolver {
      */
     public RuleEnforcer getRuleEnforcer(final PackageDependencyEvaluator packageDependencyEvaluator) {
         return switch (ruleStrategy) {
-            case DEFAULT_DENY -> new DefaultDenyRuleEnforcer(packageDependencyEvaluator);
-            case DEFAULT_ALLOW -> new DefaultAllowRuleEnforcer(packageDependencyEvaluator);
+            case DEFAULT_DENY -> new DefaultDenyRuleEnforcer(packageDependencyEvaluator, scopeStrategy);
+            case DEFAULT_ALLOW -> new DefaultAllowRuleEnforcer(packageDependencyEvaluator, scopeStrategy);
         };
     }
 

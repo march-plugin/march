@@ -4,9 +4,11 @@ import io.github.march_plugin.configuration.dto.rules.RuleConfigurationDto;
 import io.github.march_plugin.configuration.dto.rules.RuleDto;
 import io.github.march_plugin.configuration.dto.rules.RuleStrategyDto;
 import io.github.march_plugin.configuration.dto.rules.RulesDto;
+import io.github.march_plugin.configuration.dto.rules.ScopeStrategyDto;
 import io.github.march_plugin.configuration.dto.rules.ValidationScopeDto;
 import io.github.march_plugin.core.config.dimensions.model.Dimension;
 import io.github.march_plugin.core.config.rules.config.RuleStrategy;
+import io.github.march_plugin.core.config.rules.config.ScopeStrategy;
 import io.github.march_plugin.core.config.rules.model.Rule;
 import io.github.march_plugin.core.config.rules.model.ast.ComparisonExpression;
 import io.github.march_plugin.core.config.rules.model.ast.LogicalExpression;
@@ -30,7 +32,11 @@ class RuleRegistryInitializerTest {
     private final RuleRegistryInitializer initializer = new RuleRegistryInitializer(compiler);
 
     private static RuleConfigurationDto configOf(final RuleStrategyDto strategy) {
-        return new RuleConfigurationDto(strategy);
+        return new RuleConfigurationDto(strategy, null);
+    }
+
+    private static RuleConfigurationDto configOf(final RuleStrategyDto strategy, final ScopeStrategyDto scopeStrategy) {
+        return new RuleConfigurationDto(strategy, scopeStrategy);
     }
 
     private static RuleDto ruleDto(final String description, final String definition, final ValidationScopeDto scope) {
@@ -61,6 +67,27 @@ class RuleRegistryInitializerTest {
         final var registry = initializer.build(new RulesDto(List.of(), configOf(RuleStrategyDto.DEFAULT_ALLOW)));
 
         assertThat(registry.getRuleStrategy()).isEqualTo(RuleStrategy.DEFAULT_ALLOW);
+    }
+
+    @Test
+    void shouldDefaultToAutomaticScopeStrategyWhenNotConfigured() {
+        final var registry = initializer.build(new RulesDto(List.of(), configOf(RuleStrategyDto.DEFAULT_DENY)));
+
+        assertThat(registry.getScopeStrategy()).isEqualTo(ScopeStrategy.AUTOMATIC);
+    }
+
+    @Test
+    void shouldMapAutomaticScopeStrategy() {
+        final var registry = initializer.build(new RulesDto(List.of(), configOf(RuleStrategyDto.DEFAULT_DENY, ScopeStrategyDto.AUTOMATIC)));
+
+        assertThat(registry.getScopeStrategy()).isEqualTo(ScopeStrategy.AUTOMATIC);
+    }
+
+    @Test
+    void shouldMapManualScopeStrategy() {
+        final var registry = initializer.build(new RulesDto(List.of(), configOf(RuleStrategyDto.DEFAULT_DENY, ScopeStrategyDto.MANUAL)));
+
+        assertThat(registry.getScopeStrategy()).isEqualTo(ScopeStrategy.MANUAL);
     }
 
     @Test

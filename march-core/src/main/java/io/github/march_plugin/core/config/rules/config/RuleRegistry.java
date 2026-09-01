@@ -13,10 +13,12 @@ public final class RuleRegistry {
 
     private final List<Rule> rules;
     private final RuleStrategy ruleStrategy;
+    private final ScopeStrategy scopeStrategy;
 
-    private RuleRegistry(final List<Rule> rules, final RuleStrategy ruleStrategy) {
+    private RuleRegistry(final List<Rule> rules, final RuleStrategy ruleStrategy, final ScopeStrategy scopeStrategy) {
         this.rules = Collections.unmodifiableList(rules);
         this.ruleStrategy = ruleStrategy;
+        this.scopeStrategy = scopeStrategy;
     }
 
     /**
@@ -37,9 +39,19 @@ public final class RuleRegistry {
         return ruleStrategy;
     }
 
+    /**
+     * Gets the scope strategy.
+     *
+     * @return the scope strategy
+     */
+    public ScopeStrategy getScopeStrategy() {
+        return scopeStrategy;
+    }
+
     public static class Builder {
         private final List<Rule> rules = new ArrayList<>();
         private RuleStrategy ruleStrategy;
+        private ScopeStrategy scopeStrategy = ScopeStrategy.AUTOMATIC;
 
         /**
          * Adds a rule to the registry.
@@ -60,12 +72,21 @@ public final class RuleRegistry {
         }
 
         /**
+         * Sets the scope strategy.
+         *
+         * @param scopeStrategy the scope strategy
+         */
+        public void setScopeStrategy(final ScopeStrategy scopeStrategy) {
+            this.scopeStrategy = scopeStrategy;
+        }
+
+        /**
          * Builds the rule registry.
          *
          * @return the built registry
          */
         public RuleRegistry build() {
-            return new RuleRegistry(rules, ruleStrategy);
+            return new RuleRegistry(rules, ruleStrategy, scopeStrategy);
         }
     }
 }

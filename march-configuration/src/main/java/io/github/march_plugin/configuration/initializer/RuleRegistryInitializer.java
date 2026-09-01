@@ -5,6 +5,7 @@ import io.github.march_plugin.configuration.dto.rules.RuleDto;
 import io.github.march_plugin.configuration.dto.rules.RulesDto;
 import io.github.march_plugin.core.config.rules.config.RuleRegistry;
 import io.github.march_plugin.core.config.rules.config.RuleStrategy;
+import io.github.march_plugin.core.config.rules.config.ScopeStrategy;
 import io.github.march_plugin.core.config.rules.model.Rule;
 import io.github.march_plugin.core.config.rules.parser.RuleDefinitionCompiler;
 
@@ -40,12 +41,19 @@ public class RuleRegistryInitializer {
     }
 
     private void registerRuleConfig(final RuleConfigurationDto ruleConfigurationDto) {
-        final var dto = ruleConfigurationDto.strategy();
-        final var strategy = switch (dto) {
+        final var ruleStrategy = switch (ruleConfigurationDto.ruleStrategy()) {
             case DEFAULT_DENY -> RuleStrategy.DEFAULT_DENY;
             case DEFAULT_ALLOW -> RuleStrategy.DEFAULT_ALLOW;
         };
-        ruleRegistryBuilder.setRuleStrategy(strategy);
+        ruleRegistryBuilder.setRuleStrategy(ruleStrategy);
+
+        final var scopeStrategyDto = ruleConfigurationDto.scopeStrategy();
+        if (scopeStrategyDto != null) {
+            ruleRegistryBuilder.setScopeStrategy(switch (scopeStrategyDto) {
+                case AUTOMATIC -> ScopeStrategy.AUTOMATIC;
+                case MANUAL -> ScopeStrategy.MANUAL;
+            });
+        }
     }
 
     private void registerRules(final List<RuleDto> rules) {
