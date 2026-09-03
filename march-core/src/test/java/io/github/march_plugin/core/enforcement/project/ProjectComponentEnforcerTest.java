@@ -359,6 +359,20 @@ class ProjectComponentEnforcerTest {
         }
 
         @Test
+        void shouldSkipVirtualModuleChildrenWhenValidatingPackageLayer() {
+            // A concrete module's children can be virtual modules instead of packages (classifying an external
+            // dependency it depends on) -- those don't correspond to any real directory and must not be cast to
+            // ClassifiedPackage, nor checked against the filesystem the way declared packages are.
+            final var coordinates = new ModuleCoordinates("io.example", "app");
+            final var classifiedModule = module(coordinates, new PackageHierarchy(List.of("app")));
+            new ClassifiedVirtualModule.Builder(new ModuleCoordinates("io.external", "lib"), freshPartition())
+                    .buildAsChild(classifiedModule, mockModuleModularity());
+
+            assertThatCode(() -> enforcer.enforcePackageStructure(classifiedModule, coordinates, tempDir))
+                    .doesNotThrowAnyException();
+        }
+
+        @Test
         void shouldIgnoreFilesWithinAndBelowRootPackage() {
             final var coordinates = new ModuleCoordinates("io.example", "app");
             final var classifiedModule = module(coordinates, new PackageHierarchy(List.of("app")));

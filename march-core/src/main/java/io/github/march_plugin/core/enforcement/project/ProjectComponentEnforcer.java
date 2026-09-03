@@ -150,7 +150,10 @@ public class ProjectComponentEnforcer {
     }
 
     private List<ClassifiedPackage> toClassifiedPackages(final List<ClassifiedComponent> children) {
-        return children.stream().map(ClassifiedPackage.class::cast).toList();
+        return children.stream()
+                .filter(ClassifiedPackage.class::isInstance)
+                .map(ClassifiedPackage.class::cast)
+                .toList();
     }
 
     private void validateModuleDoesNotContainCode(final Path baseDir, final ModuleCoordinates moduleCoordinates) {
