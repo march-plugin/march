@@ -1,10 +1,14 @@
 package io.github.march_plugin.core.enforcement.rules;
 
+import io.github.march_plugin.core.config.classification.model.Classification;
 import io.github.march_plugin.core.config.classification.model.ClassificationRegistry;
 import io.github.march_plugin.core.config.classification.model.ClassifiedPackage;
 import io.github.march_plugin.core.config.classification.model.PackageClassification;
 import io.github.march_plugin.core.config.rules.config.RuleRegistry;
+import io.github.march_plugin.core.config.rules.config.ScopeStrategy;
 import io.github.march_plugin.core.config.rules.evaluation.RuleEvaluator;
+import io.github.march_plugin.core.config.rules.evaluation.RuleReducer;
+import io.github.march_plugin.core.config.rules.evaluation.ast.EvaluatedLogicalExpression;
 import io.github.march_plugin.core.enforcement.dependencies.ForbiddenDependency;
 import io.github.march_plugin.core.enforcement.dependencies.PackageDependencyEvaluator;
 import io.github.march_plugin.core.project.MavenDependency;
@@ -13,6 +17,7 @@ import io.github.march_plugin.core.project.ProjectModuleRegistry;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Enforces the configured rules on all modules and packages.
@@ -20,19 +25,44 @@ import java.util.List;
 public abstract class RuleEnforcer {
 
     private final PackageDependencyEvaluator packageDependencyEvaluator;
+    private final ScopeStrategy scopeStrategy;
     private final RuleEvaluator ruleEvaluator = new RuleEvaluator();
+    private final RuleReducer ruleReducer = new RuleReducer();
 
     /**
      * Constructs the RuleEnforcer.
      *
      * @param packageDependencyEvaluator evaluates if a forbidden package dependency is present
+     * @param scopeStrategy the configured scope strategy
      */
-    public RuleEnforcer(final PackageDependencyEvaluator packageDependencyEvaluator) {
+    public RuleEnforcer(final PackageDependencyEvaluator packageDependencyEvaluator, final ScopeStrategy scopeStrategy) {
         this.packageDependencyEvaluator = packageDependencyEvaluator;
+        this.scopeStrategy = scopeStrategy;
     }
 
     protected RuleEvaluator getRuleEvaluator() {
         return ruleEvaluator;
+    }
+
+    protected ScopeStrategy getScopeStrategy() {
+        return scopeStrategy;
+    }
+
+    /**
+     * Checks whether a rule matches a module-level dependency, according to the configured {@link ScopeStrategy}.
+     *
+     * @param rule the rule to check
+     * @param source the source classification
+     * @param target the target classification
+     * @return whether the rule matches at module level
+     */
+    protected boolean matchesAtModuleLevel(final Rule rule, final Classification source, final Classification target) {
+        return switch (scopeStrategy) {
+            case AUTOMATIC -> ruleReducer.reduce(rule.definition(), source.getPartitions(), target.getPartitions(), Set.of(), Set.of())
+                    instanceof EvaluatedLogicalExpression.AlwaysTrue;
+            case MANUAL -> !rule.ruleScope().equals(Rule.RuleScope.PACKAGE_ONLY)
+                    && ruleEvaluator.evaluate(rule.definition(), source, target);
+        };
     }
 
     /**
@@ -47,10 +77,10 @@ public abstract class RuleEnforcer {
         final var packageClassifications = classificationRegistry.getAllClassifiedPackages().stream().map(ClassifiedPackage::getClassifiedPackage).toList();;
 
         for (final var dependency : dependencies) {
-            enforceRulesOnMavenDependencies(dependency, ruleRegistry.getRules().stream().filter(r -> !r.ruleScope().equals(Rule.RuleScope.PACKAGE_ONLY)).toList());
+            enforceRulesOnMavenDependencies(dependency, ruleRegistry.getRules(), packageClassifications);
         }
 
-        enforceRulesOnPackageDependencies(packageClassifications, ruleRegistry.getRules().stream().filter(r -> !r.ruleScope().equals(Rule.RuleScope.MODULE_ONLY)).toList());
+        enforceRulesOnPackageDependencies(packageClassifications, ruleRegistry.getRules().stream().filter(r -> !Rule.RuleScope.MODULE_ONLY.equals(r.ruleScope())).toList());
     }
 
     /**
@@ -77,8 +107,9 @@ public abstract class RuleEnforcer {
      *
      * @param mavenDependency the maven dependency to check
      * @param rules           the rules configured in march registry
+     * @param packageClassifications all packages classified in the project
      */
-    protected abstract void enforceRulesOnMavenDependencies(final MavenDependency mavenDependency, final List<Rule> rules);
+    protected abstract void enforceRulesOnMavenDependencies(final MavenDependency mavenDependency, final List<Rule> rules, final Collection<PackageClassification> packageClassifications);
 
     /**
      * Gets all forbidden dependencies between packages .

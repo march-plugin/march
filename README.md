@@ -192,6 +192,13 @@ allowed. Two strategies are available, set once per config:
 - **`DEFAULT-DENY`**: every dependency is forbidden unless some rule explicitly matches it.
 - **`DEFAULT-ALLOW`**: every dependency is allowed unless some rule explicitly matches it.
 
+By default a rule is checked against **both** the Maven module graph and the compiled bytecode.
+`<scope>module_only</scope>` or `<scope>package_only</scope>` restricts a rule to just one of the two.
+
+`<scopeStrategy>` controls if package rules affect module scope:
+- **`AUTOMATIC`** (default): If any cross-module package dependency is allowed, then the module dependency is automatically allowed too.
+- **`MANUAL`**: If a cross-module package dependency is needed, users must manually define a rule allowing the module dependency, mostly with `module_only` scope.
+
 Each `<rule>` has a `<definition>`: a boolean expression evaluated for every candidate
 dependency, where `source` is the dependent side and `target` is the thing being depended on.
 You compare a side's dimension against a fixed partition, another side's dimension, or `NULL`
@@ -210,13 +217,6 @@ You compare a side's dimension against a fixed partition, another side's dimensi
 
 Supported operators: `==`, `!=`, `IN <dimension>.(a|b|c)`, combined with `AND`, `OR`, `!`
 (NOT) and parentheses (`AND` binds tighter than `OR`).
-
-By default a rule is checked against **both** the Maven module graph and the compiled
-bytecode. `<scope>module_only</scope>` or `<scope>package_only</scope>` restricts a rule to
-just one of the two. This matters because some dimensions (like `layer`, which lives inside a
-module) are only ever classified on packages, never on whole modules — a rule using such a
-dimension needs `package_only`, plus a separate, coarser `module_only` rule (using only
-dimensions modules actually have) to legalize the corresponding `pom.xml` dependency.
 
 ## Inspecting your configuration
 

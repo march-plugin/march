@@ -1,6 +1,7 @@
 package io.github.march_plugin.core.config.rules;
 
 import io.github.march_plugin.core.config.rules.config.RuleStrategy;
+import io.github.march_plugin.core.config.rules.config.ScopeStrategy;
 import io.github.march_plugin.core.enforcement.dependencies.PackageDependencyEvaluator;
 import io.github.march_plugin.core.enforcement.rules.DefaultAllowRuleEnforcer;
 import io.github.march_plugin.core.enforcement.rules.DefaultDenyRuleEnforcer;
@@ -15,7 +16,7 @@ class RuleStrategyResolverTest {
 
     @Test
     void shouldResolveDefaultDenyEnforcer() {
-        final var resolver = new RuleStrategyResolver(RuleStrategy.DEFAULT_DENY);
+        final var resolver = new RuleStrategyResolver(RuleStrategy.DEFAULT_DENY, ScopeStrategy.AUTOMATIC);
 
         final var enforcer = resolver.getRuleEnforcer(packageDependencyEvaluator);
 
@@ -24,7 +25,7 @@ class RuleStrategyResolverTest {
 
     @Test
     void shouldResolveDefaultAllowEnforcer() {
-        final var resolver = new RuleStrategyResolver(RuleStrategy.DEFAULT_ALLOW);
+        final var resolver = new RuleStrategyResolver(RuleStrategy.DEFAULT_ALLOW, ScopeStrategy.MANUAL);
 
         final var enforcer = resolver.getRuleEnforcer(packageDependencyEvaluator);
 
