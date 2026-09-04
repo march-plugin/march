@@ -21,13 +21,7 @@ public class DefaultAllowDependencyPermissionEvaluator extends DependencyPermiss
 
     @Override
     public DependencyPermission reduce(final RuleRegistry ruleRegistry, final DimensionRegistry dimensionRegistry, final Set<Dimension.Partition> source, final Set<Dimension.Partition> target) {
-        final var reducer = new RuleReducer();
-        final var sourceNullDimensions = getAlwaysNullDimensions(dimensionRegistry, source);
-        final var targetNullDimensions = getAlwaysNullDimensions(dimensionRegistry, target);
-
-        final var evaluations = ruleRegistry.getRules().stream()
-                .map(r -> reducer.reduce(r.definition(), source, target, sourceNullDimensions, targetNullDimensions))
-                .toList();
+        final var evaluations = evaluateRules(ruleRegistry, dimensionRegistry, source, target);
 
         if (evaluations.stream().anyMatch(x -> x instanceof EvaluatedLogicalExpression.AlwaysTrue)) {
             return new DependencyPermission.Forbidden();

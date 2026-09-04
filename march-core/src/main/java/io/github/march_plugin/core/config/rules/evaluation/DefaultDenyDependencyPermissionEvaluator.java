@@ -21,12 +21,7 @@ public class DefaultDenyDependencyPermissionEvaluator extends DependencyPermissi
 
     @Override
     public DependencyPermission reduce(final RuleRegistry ruleRegistry, final DimensionRegistry dimensionRegistry, final Set<Dimension.Partition> source, final Set<Dimension.Partition> target) {
-        final var reducer = new RuleReducer();
-        final var sourceNullDimensions = getAlwaysNullDimensions(dimensionRegistry, source);
-        final var targetNullDimensions = getAlwaysNullDimensions(dimensionRegistry, target);
-
-        final var partialMatch = ruleRegistry.getRules().stream()
-                .map(r -> reducer.reduce(r.definition(), source, target, sourceNullDimensions, targetNullDimensions))
+        final var partialMatch = evaluateRules(ruleRegistry, dimensionRegistry, source, target).stream()
                 .filter(r -> !(r instanceof EvaluatedLogicalExpression.AlwaysFalse)).toList();
 
         if (partialMatch.stream().anyMatch(x -> x instanceof EvaluatedLogicalExpression.AlwaysTrue)) {

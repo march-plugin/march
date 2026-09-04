@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -43,7 +44,7 @@ public class PossibleCombinationsFinder {
         }
 
         if (modularity.getDimension() != null && dimensionsLeft.contains(modularity.getDimension())) {
-            final var node = new Node(modularity.getDimension(), DimensionPartitionGroup.Builder.of(modularity.getDimension()), new ArrayList<>(), actualParent);
+            final var node = new Node(modularity.getDimension(), reachablePartitions(modularity), new ArrayList<>(), actualParent);
             actualParent.children.add(node);
 
             final var newDimensionsLeft = dimensionsLeft.stream().filter(d -> d != modularity.getDimension()).collect(Collectors.toCollection(HashSet::new));
@@ -62,6 +63,27 @@ public class PossibleCombinationsFinder {
                 findCombinations(childLevel, actualParent, dimensionsLeft, possibleCombinationsRegistry);
             }
         }
+    }
+
+    /**
+     * Partitions of modularity's own dimension actually reachable through its children, not every declared one.
+     */
+    private DimensionPartitionGroup reachablePartitions(final Modularity modularity) {
+        final var declaredByChildren = modularity.getChildren().stream()
+                .map(Modularity::getCasePartitions)
+                .filter(Objects::nonNull)
+                .flatMap(group -> group.getPartitions().stream())
+                .collect(Collectors.toSet());
+
+        if (declaredByChildren.isEmpty()) {
+            return modularity.getAllowedPartitions() != null
+                    ? modularity.getAllowedPartitions()
+                    : DimensionPartitionGroup.Builder.of(modularity.getDimension());
+        }
+
+        final var builder = new DimensionPartitionGroup.Builder();
+        declaredByChildren.forEach(builder::addPartition);
+        return builder.build();
     }
 
     private record Node(

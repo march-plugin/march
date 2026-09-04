@@ -33,7 +33,7 @@ public class DefaultAllowRuleEnforcer extends RuleEnforcer {
     public void enforceRulesOnMavenDependencies(final MavenDependency mavenDependency, final List<Rule> rules, final Collection<PackageClassification> packageClassifications) {
         for (final var rule : rules) {
             if (matchesAtModuleLevel(rule, mavenDependency.source(), mavenDependency.target())) {
-                throw new DependencyForbiddenException(mavenDependency.toString(), rule.description());
+                throw new DependencyForbiddenException(mavenDependency.description(), mavenDependency.source(), mavenDependency.target(), rule.description());
             }
         }
     }
@@ -64,6 +64,8 @@ public class DefaultAllowRuleEnforcer extends RuleEnforcer {
     protected void handlePackageDependencyViolation(final ForbiddenDependency forbiddenDependency, final String detail) {
         throw new PackageDependencyForbiddenException(
                 forbiddenDependency.source().packageHierarchy() + " -> " + forbiddenDependency.target().packageHierarchy(),
+                forbiddenDependency.source().classification(),
+                forbiddenDependency.target().classification(),
                 forbiddenDependency.rule().description(),
                 detail);
 

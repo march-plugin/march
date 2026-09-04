@@ -6,14 +6,12 @@ import io.github.march_plugin.configuration.initializer.ProjectStructureInitiali
 import io.github.march_plugin.configuration.initializer.RuleRegistryInitializer;
 import io.github.march_plugin.core.config.dimensions.model.Dimension;
 import io.github.march_plugin.core.config.dimensions.model.DimensionRegistry;
-import io.github.march_plugin.core.config.projectstructure.analysis.DimensionGranularityFinder;
 import io.github.march_plugin.core.config.projectstructure.analysis.PossibleCombinationsFinder;
 import io.github.march_plugin.core.config.projectstructure.model.ModuleModularity;
 import io.github.march_plugin.core.config.rules.RuleStrategyResolver;
 import io.github.march_plugin.core.config.rules.config.RuleRegistry;
 import io.github.march_plugin.core.config.rules.evaluation.DependencyPermission;
 import io.github.march_plugin.core.config.rules.evaluation.ast.EvaluatedLogicalExpression;
-import io.github.march_plugin.core.config.rules.model.Rule;
 import io.github.march_plugin.core.config.rules.parser.RuleDefinitionCompiler;
 import io.github.march_plugin.core.exceptions.MarchViolationException;
 import org.apache.maven.plugin.AbstractMojo;
@@ -35,43 +33,23 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Prints a dependency permission matrix for an abstract set of dimension combinations.
+ * Prints a package-level dependency permission matrix for an abstract set of dimension combinations.
  *
- * <p>For each combination of the requested dimensions' partitions, every rule is partially evaluated against
- * every other combination as source and target, using the same three-valued reduction ({@code Allowed}/
- * {@code Forbidden}/{@code PartiallyAllowed}) used at build time. This surfaces dependencies that a
- * configuration structurally allows or forbids across the full cross product of classifications, including
- * ones no currently existing module or package happens to exercise.</p>
- *
- * <p>A rule's {@code <scope>} (module_only/package_only/GLOBAL) matters here just as it does at build time:
- * a module_only rule was only ever meant to gate the coarse pom.xml dependency edge, not a package-level
- * bytecode dependency, and vice versa. Requesting a dimension that is only ever declared inside a
- * {@code <packageModularity>} node makes this a package-level question, so module_only rules are excluded;
- * if every requested dimension only ever appears on {@code <modularity>} module nodes, it defaults to a
- * module-level question instead, excluding package_only rules. {@code march.matrixScope} overrides this
- * auto-detection explicitly.</p>
+ * <p>For each combination of the requested dimensions' partitions, every non-module_only rule is partially
+ * evaluated against every other combination as source and target, using the same three-valued reduction
+ * ({@code Allowed}/{@code Forbidden}/{@code PartiallyAllowed}) used at build time for package dependencies.
+ * This surfaces dependencies that a configuration structurally allows or forbids across the full cross
+ * product of classifications, including ones no currently existing package happens to exercise.</p>
  *
  * <p>Usage:</p>
  * <pre>{@code
  * mvn march:matrix
  * mvn march:matrix -Dclassifications="{domain;layer}"
  * mvn march:matrix -Dclassifications="{domain(article;order);layer(api;impl)}" -Dmarch.columnWidth=10
- * mvn march:matrix -Dclassifications="{domain;module_abstraction}" -Dmarch.matrixScope=module
  * }</pre>
  */
 @Mojo(name = "matrix", aggregator = true)
 public class MarchMatrixMojo extends AbstractMojo {
-
-    /**
-     * Which build-time enforcement granularity a matrix query represents, mirroring {@link Rule.RuleScope}:
-     * a {@code MODULE} query only considers {@code GLOBAL} and {@code MODULE_ONLY} rules (like the pom.xml
-     * dependency check), a {@code PACKAGE} query only considers {@code GLOBAL} and {@code PACKAGE_ONLY}
-     * rules (like the bytecode check).
-     */
-    enum MatrixScope {
-        MODULE,
-        PACKAGE
-    }
 
     @Parameter(defaultValue = "${project}", readonly = true)
     private MavenProject project;
@@ -93,13 +71,6 @@ public class MarchMatrixMojo extends AbstractMojo {
      */
     @Parameter(property = "march.columnWidth", defaultValue = "5")
     private int maxPartitionCharCount;
-
-    /**
-     * Forces the matrix to be evaluated as {@code "module"} or {@code "package"} scope instead of
-     * auto-detecting from the requested dimensions. See the class documentation for what each means.
-     */
-    @Parameter(property = "march.matrixScope")
-    private String matrixScope;
 
     private RuleStrategyResolver ruleStrategyResolver;
 
@@ -143,37 +114,11 @@ public class MarchMatrixMojo extends AbstractMojo {
                 throw new MojoExecutionException(noCombinationMessage(dimensions));
             }
 
-            final var packageOnlyDimensions = new DimensionGranularityFinder().findPackageOnlyDimensions(projectStructureRoot, dimensions);
-            final var resolvedScope = resolveMatrixScope(matrixScope, packageOnlyDimensions);
-            final var scopedRuleRegistry = scopedRuleRegistry(ruleRegistry, resolvedScope);
-
-            ruleStrategyResolver = new RuleStrategyResolver(scopedRuleRegistry.getRuleStrategy(), scopedRuleRegistry.getScopeStrategy());
-            renderTable(dimensionRegistry, projectStructureRoot, scopedRuleRegistry, resolvedScope, filteredCombinations);
+            ruleStrategyResolver = new RuleStrategyResolver(ruleRegistry.getRuleStrategy(), ruleRegistry.getScopeStrategy());
+            renderTable(dimensionRegistry, projectStructureRoot, ruleRegistry, filteredCombinations);
         } catch (final MarchViolationException e) {
             throw new MojoFailureException(e.getMessage(), e);
         }
-    }
-
-    static MatrixScope resolveMatrixScope(final String requestedScope, final Set<Dimension> packageOnlyDimensions) throws MojoExecutionException {
-        if (requestedScope == null || requestedScope.isEmpty()) {
-            return packageOnlyDimensions.isEmpty() ? MatrixScope.MODULE : MatrixScope.PACKAGE;
-        }
-        return switch (requestedScope) {
-            case "module" -> MatrixScope.MODULE;
-            case "package" -> MatrixScope.PACKAGE;
-            default -> throw new MojoExecutionException("march.matrixScope must be 'module' or 'package', was: " + requestedScope);
-        };
-    }
-
-    static RuleRegistry scopedRuleRegistry(final RuleRegistry ruleRegistry, final MatrixScope scope) {
-        final var excludedScope = scope == MatrixScope.MODULE ? Rule.RuleScope.PACKAGE_ONLY : Rule.RuleScope.MODULE_ONLY;
-        final var builder = new RuleRegistry.Builder();
-        builder.setRuleStrategy(ruleRegistry.getRuleStrategy());
-        builder.setScopeStrategy(ruleRegistry.getScopeStrategy());
-        ruleRegistry.getRules().stream()
-                .filter(r -> !r.ruleScope().equals(excludedScope))
-                .forEach(builder::addRule);
-        return builder.build();
     }
 
     static void validateColumnWidth(final int columnWidth) throws MojoExecutionException {
@@ -221,11 +166,11 @@ public class MarchMatrixMojo extends AbstractMojo {
         getLog().info(".".repeat(fullLineWith));
     }
 
-    private void renderTable(final DimensionRegistry dimensionRegistry, final ModuleModularity projectStructureRoot, final RuleRegistry ruleRegistry, final MatrixScope resolvedScope, final List<List<Dimension.Partition>> combinations) {
+    private void renderTable(final DimensionRegistry dimensionRegistry, final ModuleModularity projectStructureRoot, final RuleRegistry ruleRegistry, final List<List<Dimension.Partition>> combinations) {
         fullLineWith = firstColWidth + (combinations.size() * (maxPartitionCharCount + 1) + firstColWidth);
 
         getLog().info("");
-        getLog().info(MessageUtils.buffer().strong("Dependency Matrix (Cross Product) — " + resolvedScope + "-level rules").build());
+        getLog().info(MessageUtils.buffer().strong("Dependency Matrix (Cross Product) — package-level rules").build());
 
         printSources(combinations, "Target \\ Source", "Source / Target");
         printDottedLine();
@@ -236,7 +181,7 @@ public class MarchMatrixMojo extends AbstractMojo {
         printSources(combinations, "Target / Source", "Source \\ Target");
         printLine();
 
-        for (final var partiallyAllowedTree : partiallyAllowedTrees.entrySet()) {
+        for (final var partiallyAllowedTree : partiallyAllowedTrees.entrySet().stream().sorted(Map.Entry.comparingByValue()).toList()) {
             getLog().info(partiallyAllowedTree.getValue() + ": " + partiallyAllowedTree.getKey());
         }
         printLine();
@@ -259,11 +204,12 @@ public class MarchMatrixMojo extends AbstractMojo {
 
     private Map<List<Dimension.Partition>, List<DependencyPermission>> getTargetToPermissionsMap(final DimensionRegistry dimensionRegistry, final ModuleModularity projectStructureRoot, final RuleRegistry ruleRegistry, final List<List<Dimension.Partition>> combinations) {
         final var result = new LinkedHashMap<List<Dimension.Partition>, List<DependencyPermission>>();
+        final var evaluator = ruleStrategyResolver.getDependencyPermissionEvaluator(projectStructureRoot);
 
         for (final var target : combinations) {
             final var permissions = new ArrayList<DependencyPermission>();
             for (final var source : combinations) {
-                permissions.add(ruleStrategyResolver.getDependencyPermissionEvaluator(projectStructureRoot).reduce(ruleRegistry, dimensionRegistry, new HashSet<>(source), new HashSet<>(target)));
+                permissions.add(evaluator.reduce(ruleRegistry, dimensionRegistry, new HashSet<>(source), new HashSet<>(target)));
             }
             result.put(target, permissions);
         }
