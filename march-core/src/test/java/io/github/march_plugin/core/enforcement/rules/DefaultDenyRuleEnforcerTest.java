@@ -244,6 +244,113 @@ class DefaultDenyRuleEnforcerTest {
     }
 
     @Nested
+    class ModuleMatrixMatching {
+
+        private RuleEvaluator ruleEvaluator;
+        private DefaultDenyRuleEnforcer enforcer;
+
+        @BeforeEach
+        void setUp() {
+            ruleEvaluator = mock(RuleEvaluator.class);
+            enforcer = new TestableDefaultDenyRuleEnforcer(packageDependencyEvaluator, ruleEvaluator, ScopeStrategy.AUTOMATIC);
+        }
+
+        @Test
+        void directModuleLevelMatchIsReportedAsDirectNotFallback() {
+            final var source = mockClassification(domainA);
+            final var target = mockClassification(domainA);
+            final var rule = new Rule("Same domain", sameDomainRule, null);
+
+            final var match = enforcer.matchingRulesForModuleMatrix(List.of(rule), source, target, List.of());
+
+            assertThat(match.directRules()).containsExactly(rule);
+            assertThat(match.fallbackOnlyRules()).isEmpty();
+        }
+
+        @Test
+        void directMatchNeverConsultsThePackageFallback() {
+            final var source = mockClassification(domainA);
+            final var target = mockClassification(domainA);
+            final var rule = new Rule("Same domain", sameDomainRule, null);
+
+            enforcer.matchingRulesForModuleMatrix(List.of(rule), source, target, List.of());
+
+            verify(ruleEvaluator, never()).evaluate(any(), any(), any());
+        }
+
+        @Test
+        void ambiguousModuleLevelRuleIsReportedAsFallbackOnlyWhenAPackagePairAllowsIt() {
+            final var source = mockClassification(domainA);
+            final var target = mockClassification(domainA);
+            final var rule = new Rule("Business to dbaccess", businessToDbaccessRule, null);
+
+            final var businessPackage = mockPackage("source.business", domainA, layerBusiness);
+            final var dbaccessPackage = mockPackage("target.dbaccess", domainA, layerDbaccess);
+
+            when(ruleEvaluator.evaluate(businessToDbaccessRule, businessPackage.classification(), dbaccessPackage.classification())).thenReturn(true);
+
+            final var match = enforcer.matchingRulesForModuleMatrix(List.of(rule), source, target, List.of(businessPackage, dbaccessPackage));
+
+            assertThat(match.directRules()).isEmpty();
+            assertThat(match.fallbackOnlyRules()).containsExactly(rule);
+        }
+
+        @Test
+        void noMatchAtAllWhenNeitherModuleLevelNorFallbackApplies() {
+            final var source = mockClassification(domainA);
+            final var target = mockClassification(domainA);
+            final var rule = new Rule("Business to dbaccess", businessToDbaccessRule, null);
+
+            final var businessPackage = mockPackage("source.business", domainA, layerBusiness);
+            final var dbaccessPackage = mockPackage("target.dbaccess", domainA, layerDbaccess);
+
+            when(ruleEvaluator.evaluate(businessToDbaccessRule, businessPackage.classification(), dbaccessPackage.classification())).thenReturn(false);
+
+            final var match = enforcer.matchingRulesForModuleMatrix(List.of(rule), source, target, List.of(businessPackage, dbaccessPackage));
+
+            assertThat(match.directRules()).isEmpty();
+            assertThat(match.fallbackOnlyRules()).isEmpty();
+        }
+
+        @Test
+        void fallbackCollectsEveryDistinctRuleAcrossAllPackagePairsNotJustTheFirst() {
+            final var source = mockClassification(domainA);
+            final var target = mockClassification(domainA);
+            final var ruleOne = new Rule("Business to dbaccess", businessToDbaccessRule, null);
+            final var ruleTwo = new Rule("Same domain and business", sameDomainAndBusinessLayerRule, null);
+
+            final var businessPackage = mockPackage("source.business", domainA, layerBusiness);
+            final var dbaccessPackage = mockPackage("target.dbaccess", domainA, layerDbaccess);
+
+            when(ruleEvaluator.evaluate(businessToDbaccessRule, businessPackage.classification(), dbaccessPackage.classification())).thenReturn(true);
+            when(ruleEvaluator.evaluate(sameDomainAndBusinessLayerRule, businessPackage.classification(), dbaccessPackage.classification())).thenReturn(true);
+
+            final var match = enforcer.matchingRulesForModuleMatrix(List.of(ruleOne, ruleTwo), source, target, List.of(businessPackage, dbaccessPackage));
+
+            assertThat(match.directRules()).isEmpty();
+            assertThat(match.fallbackOnlyRules()).containsExactlyInAnyOrder(ruleOne, ruleTwo);
+        }
+
+        @Test
+        void manualModeNeverConsultsThePackageFallbackEvenWhenItWouldAllow() {
+            final var manualEnforcer = new TestableDefaultDenyRuleEnforcer(packageDependencyEvaluator, ruleEvaluator, ScopeStrategy.MANUAL);
+            final var source = mockClassification(domainA);
+            final var target = mockClassification(domainA);
+            final var rule = new Rule("Business to dbaccess", businessToDbaccessRule, Rule.RuleScope.PACKAGE_ONLY);
+
+            final var businessPackage = mockPackage("source.business", domainA, layerBusiness);
+            final var dbaccessPackage = mockPackage("target.dbaccess", domainA, layerDbaccess);
+
+            when(ruleEvaluator.evaluate(businessToDbaccessRule, businessPackage.classification(), dbaccessPackage.classification())).thenReturn(true);
+
+            final var match = manualEnforcer.matchingRulesForModuleMatrix(List.of(rule), source, target, List.of(businessPackage, dbaccessPackage));
+
+            assertThat(match.directRules()).isEmpty();
+            assertThat(match.fallbackOnlyRules()).isEmpty();
+        }
+    }
+
+    @Nested
     class PackageLevel {
 
         private RuleEvaluator ruleEvaluator;

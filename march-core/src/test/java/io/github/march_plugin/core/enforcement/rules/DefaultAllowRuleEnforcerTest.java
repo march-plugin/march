@@ -136,6 +136,22 @@ class DefaultAllowRuleEnforcerTest {
             assertThrows(DependencyForbiddenException.class, () ->
                     invokeEnforceRules(enforcer, Set.of(mavenDependency), List.of(), List.of(nonMatchingRule, matchingRule)));
         }
+
+        @Test
+        void moduleMatrixMatchingNeverHasAPackageFallbackUnlikeDefaultDeny() {
+            final var source = mockClassification(domainA);
+            final var target = mockClassification(domainA);
+            final var rule = new Rule("Forbid non-business (misscoped)", notBusinessLayerRule, null);
+
+            final var businessPackage = mockPackage("source.business");
+            final var dbaccessPackage = mockPackage("target.dbaccess");
+            when(ruleEvaluator.evaluate(any(), any(), any())).thenReturn(true);
+
+            final var match = enforcer.matchingRulesForModuleMatrix(List.of(rule), source, target, List.of(businessPackage, dbaccessPackage));
+
+            assertThat(match.directRules()).isEmpty();
+            assertThat(match.fallbackOnlyRules()).isEmpty();
+        }
     }
 
     @Nested

@@ -66,6 +66,41 @@ public abstract class RuleEnforcer {
     }
 
     /**
+     * Finds every rule that matches a module-level dependency between source and target.
+     *
+     * @param rules the rules to check
+     * @param source the source classification
+     * @param target the target classification
+     * @return every rule matching at module level, in the given order
+     */
+    public List<Rule> matchingRulesAtModuleLevel(final List<Rule> rules, final Classification source, final Classification target) {
+        return rules.stream().filter(rule -> matchesAtModuleLevel(rule, source, target)).toList();
+    }
+
+    /**
+     * Finds every rule that matches a module-level dependency between source and target, for diagnostic tools
+     * that display the full reasoning (e.g. march:module-matrix).
+     *
+     * @param rules the rules to check
+     * @param source the source classification
+     * @param target the target classification
+     * @param packageClassifications all packages classified in the project
+     * @return the matching rules, split into direct module-level matches and fallback-only matches
+     */
+    public ModuleLevelMatch matchingRulesForModuleMatrix(final List<Rule> rules, final Classification source, final Classification target, final Collection<PackageClassification> packageClassifications) {
+        return new ModuleLevelMatch(matchingRulesAtModuleLevel(rules, source, target), List.of());
+    }
+
+    /**
+     * The rules matching a module-level dependency, split by how they were found.
+     *
+     * @param directRules directly matching rules at module level
+     * @param fallbackOnlyRules automatically matching rules at package level
+     */
+    public record ModuleLevelMatch(List<Rule> directRules, List<Rule> fallbackOnlyRules) {
+    }
+
+    /**
      * Enforces all configured rules across the modules and packages of the project.
      *
      * @param classificationRegistry the registry containing all classified modules and packages
