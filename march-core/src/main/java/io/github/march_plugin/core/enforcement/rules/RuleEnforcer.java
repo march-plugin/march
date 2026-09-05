@@ -17,7 +17,7 @@ import io.github.march_plugin.core.project.ProjectModuleRegistry;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 /**
  * Enforces the configured rules on all modules and packages.
@@ -58,7 +58,7 @@ public abstract class RuleEnforcer {
      */
     protected boolean matchesAtModuleLevel(final Rule rule, final Classification source, final Classification target) {
         return switch (scopeStrategy) {
-            case AUTOMATIC -> ruleReducer.reduce(rule.definition(), source.getPartitions(), target.getPartitions(), Set.of(), Set.of())
+            case AUTOMATIC -> ruleReducer.reduce(rule.definition(), source.getPartitions(), target.getPartitions(), Map.of(), Map.of())
                     instanceof EvaluatedLogicalExpression.AlwaysTrue;
             case MANUAL -> !rule.ruleScope().equals(Rule.RuleScope.PACKAGE_ONLY)
                     && ruleEvaluator.evaluate(rule.definition(), source, target);

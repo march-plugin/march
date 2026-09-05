@@ -8,6 +8,7 @@ import io.github.march_plugin.core.config.rules.model.ast.ComparisonExpression;
 import io.github.march_plugin.core.config.rules.model.ast.LogicalExpression;
 import io.github.march_plugin.core.config.rules.model.ast.PartitionExpression;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -22,22 +23,22 @@ public class RuleReducer {
      * @param expression The logical expression to evaluate.
      * @param sourcePartitions The partially classified partitions of source.
      * @param targetPartitions The partially classified partitions of target.
-     * @param sourceNullDimensions The dimensions of source that must implicitly be null.
-     * @param targetNullDimensions The dimensions of target that must implicitly be null.
+     * @param sourceForcedValues Dimensions of source that are, though not directly given, structurally forced to one specific value
+     * @param targetForcedValues Dimensions of target that are, though not directly given, structurally forced to one specific value
      * @return The missing classifications to match the rule
      */
-    public EvaluatedLogicalExpression reduce(final LogicalExpression expression, final Set<Dimension.Partition> sourcePartitions, final Set<Dimension.Partition> targetPartitions, final Set<Dimension> sourceNullDimensions, final Set<Dimension> targetNullDimensions) {
+    public EvaluatedLogicalExpression reduce(final LogicalExpression expression, final Set<Dimension.Partition> sourcePartitions, final Set<Dimension.Partition> targetPartitions, final Map<Dimension, Dimension.Partition> sourceForcedValues, final Map<Dimension, Dimension.Partition> targetForcedValues) {
         return switch (expression) {
-            case LogicalExpression.And and -> reduceAnd(and, sourcePartitions, targetPartitions, sourceNullDimensions, targetNullDimensions);
-            case LogicalExpression.Or or -> reduceOr(or, sourcePartitions, targetPartitions, sourceNullDimensions, targetNullDimensions);
-            case LogicalExpression.ComparisonWrap wrap -> reduceComparison(wrap.comparison(), sourcePartitions, targetPartitions, sourceNullDimensions, targetNullDimensions);
-            case LogicalExpression.Not not -> reduceNot(not, sourcePartitions, targetPartitions, sourceNullDimensions, targetNullDimensions);
+            case LogicalExpression.And and -> reduceAnd(and, sourcePartitions, targetPartitions, sourceForcedValues, targetForcedValues);
+            case LogicalExpression.Or or -> reduceOr(or, sourcePartitions, targetPartitions, sourceForcedValues, targetForcedValues);
+            case LogicalExpression.ComparisonWrap wrap -> reduceComparison(wrap.comparison(), sourcePartitions, targetPartitions, sourceForcedValues, targetForcedValues);
+            case LogicalExpression.Not not -> reduceNot(not, sourcePartitions, targetPartitions, sourceForcedValues, targetForcedValues);
         };
     }
 
-    private EvaluatedLogicalExpression reduceAnd(final LogicalExpression.And and, final Set<Dimension.Partition> sourcePartitions, final Set<Dimension.Partition> targetPartitions, final Set<Dimension> sourceNullDimensions, final Set<Dimension> targetNullDimensions) {
-        final var left = reduce(and.left(), sourcePartitions, targetPartitions, sourceNullDimensions, targetNullDimensions);
-        final var right = reduce(and.right(), sourcePartitions, targetPartitions, sourceNullDimensions, targetNullDimensions);
+    private EvaluatedLogicalExpression reduceAnd(final LogicalExpression.And and, final Set<Dimension.Partition> sourcePartitions, final Set<Dimension.Partition> targetPartitions, final Map<Dimension, Dimension.Partition> sourceForcedValues, final Map<Dimension, Dimension.Partition> targetForcedValues) {
+        final var left = reduce(and.left(), sourcePartitions, targetPartitions, sourceForcedValues, targetForcedValues);
+        final var right = reduce(and.right(), sourcePartitions, targetPartitions, sourceForcedValues, targetForcedValues);
 
         if (left instanceof EvaluatedLogicalExpression.AlwaysFalse || right instanceof EvaluatedLogicalExpression.AlwaysFalse) {
             return new EvaluatedLogicalExpression.AlwaysFalse();
@@ -51,9 +52,9 @@ public class RuleReducer {
         return new EvaluatedLogicalExpression.And(left, right);
     }
 
-    private EvaluatedLogicalExpression reduceOr(final LogicalExpression.Or or, final Set<Dimension.Partition> sourcePartitions, final Set<Dimension.Partition> targetPartitions, final Set<Dimension> sourceNullDimensions, final Set<Dimension> targetNullDimensions) {
-        final var left = reduce(or.left(), sourcePartitions, targetPartitions, sourceNullDimensions, targetNullDimensions);
-        final var right = reduce(or.right(), sourcePartitions, targetPartitions, sourceNullDimensions, targetNullDimensions);
+    private EvaluatedLogicalExpression reduceOr(final LogicalExpression.Or or, final Set<Dimension.Partition> sourcePartitions, final Set<Dimension.Partition> targetPartitions, final Map<Dimension, Dimension.Partition> sourceForcedValues, final Map<Dimension, Dimension.Partition> targetForcedValues) {
+        final var left = reduce(or.left(), sourcePartitions, targetPartitions, sourceForcedValues, targetForcedValues);
+        final var right = reduce(or.right(), sourcePartitions, targetPartitions, sourceForcedValues, targetForcedValues);
 
         if (left instanceof EvaluatedLogicalExpression.AlwaysTrue || right instanceof EvaluatedLogicalExpression.AlwaysTrue) {
             return new EvaluatedLogicalExpression.AlwaysTrue();
@@ -67,16 +68,16 @@ public class RuleReducer {
         return new EvaluatedLogicalExpression.Or(left, right);
     }
 
-    private EvaluatedLogicalExpression reduceComparison(final ComparisonExpression comp, final Set<Dimension.Partition> sourcePartitions, final Set<Dimension.Partition> targetPartitions, final Set<Dimension> sourceNullDimensions, final Set<Dimension> targetNullDimensions) {
+    private EvaluatedLogicalExpression reduceComparison(final ComparisonExpression comp, final Set<Dimension.Partition> sourcePartitions, final Set<Dimension.Partition> targetPartitions, final Map<Dimension, Dimension.Partition> sourceForcedValues, final Map<Dimension, Dimension.Partition> targetForcedValues) {
         return switch (comp) {
-            case ComparisonExpression.Equal eq -> reduceEqual(eq, sourcePartitions, targetPartitions, sourceNullDimensions, targetNullDimensions);
-            case ComparisonExpression.NotEqual ne -> reduceNotEqual(ne, sourcePartitions, targetPartitions, sourceNullDimensions, targetNullDimensions);
-            case ComparisonExpression.In inExpr -> reduceIn(inExpr, sourcePartitions, targetPartitions, sourceNullDimensions, targetNullDimensions);
+            case ComparisonExpression.Equal eq -> reduceEqual(eq, sourcePartitions, targetPartitions, sourceForcedValues, targetForcedValues);
+            case ComparisonExpression.NotEqual ne -> reduceNotEqual(ne, sourcePartitions, targetPartitions, sourceForcedValues, targetForcedValues);
+            case ComparisonExpression.In inExpr -> reduceIn(inExpr, sourcePartitions, targetPartitions, sourceForcedValues, targetForcedValues);
         };
     }
 
-    private EvaluatedLogicalExpression reduceNot(final LogicalExpression.Not not, final Set<Dimension.Partition> sourcePartitions, final Set<Dimension.Partition> targetPartitions, final Set<Dimension> sourceNullDimensions, final Set<Dimension> targetNullDimensions) {
-        final var inner = reduce(not.expression(), sourcePartitions, targetPartitions, sourceNullDimensions, targetNullDimensions);
+    private EvaluatedLogicalExpression reduceNot(final LogicalExpression.Not not, final Set<Dimension.Partition> sourcePartitions, final Set<Dimension.Partition> targetPartitions, final Map<Dimension, Dimension.Partition> sourceForcedValues, final Map<Dimension, Dimension.Partition> targetForcedValues) {
+        final var inner = reduce(not.expression(), sourcePartitions, targetPartitions, sourceForcedValues, targetForcedValues);
 
         if (inner instanceof EvaluatedLogicalExpression.AlwaysTrue) {
             return new EvaluatedLogicalExpression.AlwaysFalse();
@@ -88,9 +89,9 @@ public class RuleReducer {
         return new EvaluatedLogicalExpression.Not(inner);
     }
 
-    private EvaluatedLogicalExpression reduceEqual(final ComparisonExpression.Equal eq, final Set<Dimension.Partition> sourcePartitions, final Set<Dimension.Partition> targetPartitions, final Set<Dimension> sourceNullDimensions, final Set<Dimension> targetNullDimensions) {
-        final var leftRes = resolvePartially(eq.left(), sourcePartitions, targetPartitions, sourceNullDimensions, targetNullDimensions);
-        final var rightRes = resolvePartially(eq.right(), sourcePartitions, targetPartitions, sourceNullDimensions, targetNullDimensions);
+    private EvaluatedLogicalExpression reduceEqual(final ComparisonExpression.Equal eq, final Set<Dimension.Partition> sourcePartitions, final Set<Dimension.Partition> targetPartitions, final Map<Dimension, Dimension.Partition> sourceForcedValues, final Map<Dimension, Dimension.Partition> targetForcedValues) {
+        final var leftRes = resolvePartially(eq.left(), sourcePartitions, targetPartitions, sourceForcedValues, targetForcedValues);
+        final var rightRes = resolvePartially(eq.right(), sourcePartitions, targetPartitions, sourceForcedValues, targetForcedValues);
 
         if (leftRes instanceof Resolved l && rightRes instanceof Resolved r) {
             return Objects.equals(l.partition(), r.partition()) ?
@@ -101,9 +102,9 @@ public class RuleReducer {
         );
     }
 
-    private EvaluatedLogicalExpression reduceNotEqual(final ComparisonExpression.NotEqual ne, final Set<Dimension.Partition> sourcePartitions, final Set<Dimension.Partition> targetPartitions, final Set<Dimension> sourceNullDimensions, final Set<Dimension> targetNullDimensions) {
-        final var leftRes = resolvePartially(ne.left(), sourcePartitions, targetPartitions, sourceNullDimensions, targetNullDimensions);
-        final var rightRes = resolvePartially(ne.right(), sourcePartitions, targetPartitions, sourceNullDimensions, targetNullDimensions);
+    private EvaluatedLogicalExpression reduceNotEqual(final ComparisonExpression.NotEqual ne, final Set<Dimension.Partition> sourcePartitions, final Set<Dimension.Partition> targetPartitions, final Map<Dimension, Dimension.Partition> sourceForcedValues, final Map<Dimension, Dimension.Partition> targetForcedValues) {
+        final var leftRes = resolvePartially(ne.left(), sourcePartitions, targetPartitions, sourceForcedValues, targetForcedValues);
+        final var rightRes = resolvePartially(ne.right(), sourcePartitions, targetPartitions, sourceForcedValues, targetForcedValues);
 
         if (leftRes instanceof Resolved l && rightRes instanceof Resolved r) {
             return !Objects.equals(l.partition(), r.partition()) ?
@@ -114,10 +115,10 @@ public class RuleReducer {
         );
     }
 
-    private EvaluatedLogicalExpression reduceIn(final ComparisonExpression.In inExpr, final Set<Dimension.Partition> sourcePartitions, final Set<Dimension.Partition> targetPartitions, final Set<Dimension> sourceNullDimensions, final Set<Dimension> targetNullDimensions) {
-        final var leftRes = resolvePartially(inExpr.left(), sourcePartitions, targetPartitions, sourceNullDimensions, targetNullDimensions);
+    private EvaluatedLogicalExpression reduceIn(final ComparisonExpression.In inExpr, final Set<Dimension.Partition> sourcePartitions, final Set<Dimension.Partition> targetPartitions, final Map<Dimension, Dimension.Partition> sourceForcedValues, final Map<Dimension, Dimension.Partition> targetForcedValues) {
+        final var leftRes = resolvePartially(inExpr.left(), sourcePartitions, targetPartitions, sourceForcedValues, targetForcedValues);
         final var rightResults = inExpr.rights().stream()
-                .map(r -> resolvePartially(r, sourcePartitions, targetPartitions, sourceNullDimensions, targetNullDimensions))
+                .map(r -> resolvePartially(r, sourcePartitions, targetPartitions, sourceForcedValues, targetForcedValues))
                 .toList();
 
         if (leftRes instanceof Resolved l && rightResults.stream().allMatch(r -> r instanceof Resolved)) {
@@ -144,7 +145,7 @@ public class RuleReducer {
         };
     }
 
-    private PartialPartition resolvePartially(final PartitionExpression expr, final Set<Dimension.Partition> sourcePartitions, final Set<Dimension.Partition> targetPartitions, final Set<Dimension> sourceNullDimensions, final Set<Dimension> targetNullDimensions) {
+    private PartialPartition resolvePartially(final PartitionExpression expr, final Set<Dimension.Partition> sourcePartitions, final Set<Dimension.Partition> targetPartitions, final Map<Dimension, Dimension.Partition> sourceForcedValues, final Map<Dimension, Dimension.Partition> targetForcedValues) {
         return switch (expr) {
             case PartitionExpression.Fixed fix -> new Resolved(fix.partition());
             case PartitionExpression.Relative rel -> {
@@ -155,11 +156,10 @@ public class RuleReducer {
                     yield new Resolved(found);
                 }
 
-                final var nullDimensions = (rel.side() == PartitionExpression.Relative.Side.SOURCE) ? sourceNullDimensions : targetNullDimensions;
-                final var foundNull = nullDimensions.stream().filter(x -> x.equals(rel.dimension())).findFirst().orElse(null);
+                final var forcedValues = (rel.side() == PartitionExpression.Relative.Side.SOURCE) ? sourceForcedValues : targetForcedValues;
 
-                if (foundNull != null) {
-                    yield new Resolved(null);
+                if (forcedValues.containsKey(rel.dimension())) {
+                    yield new Resolved(forcedValues.get(rel.dimension()));
                 }
 
                 yield new Unknown();

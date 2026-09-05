@@ -235,11 +235,11 @@ mvn march:tree -Dmarch.showInherited=true
 
 ### `march:matrix`
 
-Prints a permission matrix across an abstract set of dimension combinations: for every pair
-of classifications, whether a dependency between them is `Allowed`, `Forbidden`, or
+Prints a package-level permission matrix across an abstract set of dimension combinations: for
+every pair of classifications, whether a dependency between them is `Allowed`, `Forbidden`, or
 `PartiallyAllowed` (with the residual rule condition shown), using the same three-valued
-rule reduction used at build time. This is useful for spotting a rule that reaches further,
-or less far, than intended.
+rule reduction used at build time for package (bytecode) dependencies. This is useful for
+spotting a rule that reaches further, or less far, than intended.
 
 ```
 mvn march:matrix
@@ -253,15 +253,9 @@ mvn march:matrix -Dclassifications="{domain(article;order);layer(api;impl)}" -Dm
 - `-Dmarch.columnWidth`: characters shown per column before a label truncates (default `5`).
   Raise it if truncated partition names collide into the same column, e.g. `adapterIn` and
   `adapterOut` both showing as `adapt`.
-- `-Dmarch.matrixScope=module|package`: which of the two build-time checks (Maven module
-  graph vs. bytecode) to evaluate against.
 
-A rule's `<scope>` (see [Rules and strategy](#rules-and-strategy)) matters here too: the matrix
-only evaluates rules that would actually apply at the granularity being asked about. If any
-requested dimension is only ever classified on packages (never on a whole module), the query
-is treated as package-level and `module_only` rules are excluded; otherwise it defaults to
-module-level and `package_only` rules are excluded. `-Dmarch.matrixScope` overrides this when
-the requested dimensions could reasonably be either.
+A rule's `<scope>` (see [Rules and strategy](#rules-and-strategy)) matters here too: `module_only`
+rules are excluded, since the matrix only ever evaluates package-level (bytecode) dependencies.
 
 ## License
 

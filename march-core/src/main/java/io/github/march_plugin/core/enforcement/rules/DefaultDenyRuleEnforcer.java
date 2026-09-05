@@ -46,7 +46,7 @@ public class DefaultDenyRuleEnforcer extends RuleEnforcer {
             }
         }
 
-        throw new DependencyNotAllowedException(mavenDependency.description());
+        throw new DependencyNotAllowedException(mavenDependency.description(), source, target);
     }
 
     private boolean isSomePackageDependencyAllowed(final Classification source, final Classification target, final List<Rule> rules, final Collection<PackageClassification> packageClassifications) {
@@ -103,6 +103,8 @@ public class DefaultDenyRuleEnforcer extends RuleEnforcer {
     protected void handlePackageDependencyViolation(final ForbiddenDependency forbiddenDependency, final String detail) {
         throw new PackageDependencyNotAllowedException(
                 forbiddenDependency.source().packageHierarchy() + " -> " + forbiddenDependency.target().packageHierarchy(),
+                forbiddenDependency.source().classification(),
+                forbiddenDependency.target().classification(),
                 detail);
     }
 }

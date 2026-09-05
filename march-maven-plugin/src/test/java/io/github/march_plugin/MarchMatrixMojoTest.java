@@ -1,9 +1,6 @@
 package io.github.march_plugin;
 
 import io.github.march_plugin.core.config.dimensions.model.Dimension;
-import io.github.march_plugin.core.config.rules.config.RuleRegistry;
-import io.github.march_plugin.core.config.rules.config.RuleStrategy;
-import io.github.march_plugin.core.config.rules.model.Rule;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -23,19 +20,6 @@ class MarchMatrixMojoTest {
         final var builder = new Dimension.Builder(name);
         builder.addPartition("p1");
         builder.addPartition("p2");
-        return builder.build();
-    }
-
-    private static Rule rule(final Rule.RuleScope scope) {
-        return new Rule("rule with scope " + scope, null, scope);
-    }
-
-    private static RuleRegistry registryOf(final Rule... rules) {
-        final var builder = new RuleRegistry.Builder();
-        builder.setRuleStrategy(RuleStrategy.DEFAULT_DENY);
-        for (final var rule : rules) {
-            builder.addRule(rule);
-        }
         return builder.build();
     }
 
@@ -157,81 +141,6 @@ class MarchMatrixMojoTest {
         @Test
         void shouldPadEmptyTextToFullWidth() {
             assertThat(MarchMatrixMojo.center("", 4)).isEqualTo("    ");
-        }
-    }
-
-    @Nested
-    class MatrixScopeResolution {
-
-        @Test
-        void shouldAutoDetectModuleWhenNoDimensionIsPackageOnly() throws MojoExecutionException {
-            assertThat(MarchMatrixMojo.resolveMatrixScope(null, Set.of())).isEqualTo(MarchMatrixMojo.MatrixScope.MODULE);
-        }
-
-        @Test
-        void shouldAutoDetectPackageWhenAnyDimensionIsPackageOnly() throws MojoExecutionException {
-            final var layer = dimension("layer");
-
-            assertThat(MarchMatrixMojo.resolveMatrixScope(null, Set.of(layer))).isEqualTo(MarchMatrixMojo.MatrixScope.PACKAGE);
-        }
-
-        @Test
-        void shouldAutoDetectPackageWhenInputIsEmptyString() throws MojoExecutionException {
-            final var layer = dimension("layer");
-
-            assertThat(MarchMatrixMojo.resolveMatrixScope("", Set.of(layer))).isEqualTo(MarchMatrixMojo.MatrixScope.PACKAGE);
-        }
-
-        @Test
-        void shouldHonorExplicitModuleOverrideEvenWithPackageOnlyDimensions() throws MojoExecutionException {
-            final var layer = dimension("layer");
-
-            assertThat(MarchMatrixMojo.resolveMatrixScope("module", Set.of(layer))).isEqualTo(MarchMatrixMojo.MatrixScope.MODULE);
-        }
-
-        @Test
-        void shouldHonorExplicitPackageOverride() throws MojoExecutionException {
-            assertThat(MarchMatrixMojo.resolveMatrixScope("package", Set.of())).isEqualTo(MarchMatrixMojo.MatrixScope.PACKAGE);
-        }
-
-        @Test
-        void shouldThrowOnInvalidScopeValue() {
-            assertThatThrownBy(() -> MarchMatrixMojo.resolveMatrixScope("bogus", Set.of()))
-                    .isInstanceOf(MojoExecutionException.class)
-                    .hasMessageContaining("march.matrixScope");
-        }
-    }
-
-    @Nested
-    class ScopedRuleRegistryFiltering {
-
-        @Test
-        void shouldExcludePackageOnlyRulesForModuleScope() {
-            final var registry = registryOf(rule(Rule.RuleScope.GLOBAL), rule(Rule.RuleScope.MODULE_ONLY), rule(Rule.RuleScope.PACKAGE_ONLY));
-
-            final var scoped = MarchMatrixMojo.scopedRuleRegistry(registry, MarchMatrixMojo.MatrixScope.MODULE);
-
-            assertThat(scoped.getRules()).extracting(Rule::ruleScope)
-                    .containsExactlyInAnyOrder(Rule.RuleScope.GLOBAL, Rule.RuleScope.MODULE_ONLY);
-        }
-
-        @Test
-        void shouldExcludeModuleOnlyRulesForPackageScope() {
-            final var registry = registryOf(rule(Rule.RuleScope.GLOBAL), rule(Rule.RuleScope.MODULE_ONLY), rule(Rule.RuleScope.PACKAGE_ONLY));
-
-            final var scoped = MarchMatrixMojo.scopedRuleRegistry(registry, MarchMatrixMojo.MatrixScope.PACKAGE);
-
-            assertThat(scoped.getRules()).extracting(Rule::ruleScope)
-                    .containsExactlyInAnyOrder(Rule.RuleScope.GLOBAL, Rule.RuleScope.PACKAGE_ONLY);
-        }
-
-        @Test
-        void shouldPreserveRuleStrategy() {
-            final var registry = registryOf(rule(Rule.RuleScope.GLOBAL));
-
-            final var scoped = MarchMatrixMojo.scopedRuleRegistry(registry, MarchMatrixMojo.MatrixScope.MODULE);
-
-            assertThat(scoped.getRuleStrategy()).isEqualTo(registry.getRuleStrategy());
         }
     }
 

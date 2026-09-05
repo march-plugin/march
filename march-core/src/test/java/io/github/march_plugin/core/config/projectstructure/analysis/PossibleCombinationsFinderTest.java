@@ -247,6 +247,59 @@ class PossibleCombinationsFinderTest {
     }
 
     @Nested
+    class PartitionRestrictionsPerBranch {
+
+        @Test
+        void shouldOnlyIncludePartitionsActuallyReachableThroughChildren() {
+            final var a = dimension("a", "a1", "a2");
+            final var b = dimension("b", "b1", "b2", "b3");
+            final var root = rootModule(a);
+            final var intermediate = moduleChild(root, b, null);
+            moduleChild(intermediate, null, groupOf(b.getPartition("b1")));
+            moduleChild(intermediate, null, groupOf(b.getPartition("b2")));
+
+            final var combinations = finder.findCombinations(root, Set.of(b));
+
+            assertThat(combinations).containsExactlyInAnyOrder(
+                    Set.of(b.getPartition("b1")),
+                    Set.of(b.getPartition("b2")));
+        }
+
+        @Test
+        void shouldKeepEveryPartitionForATemplatedSoleChild() {
+            final var a = dimension("a", "a1", "a2");
+            final var b = dimension("b", "b1", "b2", "b3");
+            final var root = rootModule(a);
+            final var intermediate = moduleChild(root, b, null);
+
+            moduleChild(intermediate, null, null);
+
+            final var combinations = finder.findCombinations(root, Set.of(b));
+
+            assertThat(combinations).containsExactlyInAnyOrder(
+                    Set.of(b.getPartition("b1")),
+                    Set.of(b.getPartition("b2")),
+                    Set.of(b.getPartition("b3")));
+        }
+
+        @Test
+        void shouldRestrictATemplatedSoleChildToItsAllowedPartitions() {
+            final var a = dimension("a", "a1", "a2");
+            final var b = dimension("b", "b1", "b2", "b3");
+            final var root = rootModule(a);
+            final var intermediate = new ModuleModularity.Builder(b, moduleConvention)
+                    .setAllowedPartitions(groupOf(b.getPartition("b1")))
+                    .buildAsChild(root);
+
+            moduleChild(intermediate, null, null);
+
+            final var combinations = finder.findCombinations(root, Set.of(b));
+
+            assertThat(combinations).containsExactly(Set.of(b.getPartition("b1")));
+        }
+    }
+
+    @Nested
     class EdgeCases {
 
         @Test
