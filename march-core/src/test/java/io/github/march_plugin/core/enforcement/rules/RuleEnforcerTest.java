@@ -1,10 +1,15 @@
 package io.github.march_plugin.core.enforcement.rules;
 
+import io.github.march_plugin.core.config.classification.model.Classification;
 import io.github.march_plugin.core.config.classification.model.ClassificationRegistry;
 import io.github.march_plugin.core.config.classification.model.ClassifiedPackage;
 import io.github.march_plugin.core.config.classification.model.PackageClassification;
+import io.github.march_plugin.core.config.dimensions.model.Dimension;
 import io.github.march_plugin.core.config.rules.config.RuleRegistry;
 import io.github.march_plugin.core.config.rules.config.ScopeStrategy;
+import io.github.march_plugin.core.config.rules.model.ast.ComparisonExpression;
+import io.github.march_plugin.core.config.rules.model.ast.LogicalExpression;
+import io.github.march_plugin.core.config.rules.model.ast.PartitionExpression;
 import io.github.march_plugin.core.enforcement.dependencies.ForbiddenDependency;
 import io.github.march_plugin.core.enforcement.dependencies.PackageDependencyEvaluationResult;
 import io.github.march_plugin.core.enforcement.dependencies.PackageDependencyEvaluator;
@@ -66,6 +71,51 @@ class RuleEnforcerTest {
         assertThat(enforcer.lastDetail).isEqualTo("Error Detail");
     }
 
+    @Test
+    void matchingRulesAtModuleLevelReturnsAllMatchingNonPackageOnlyRulesInManualMode() {
+        final var domainBuilder = new Dimension.Builder("domain");
+        final var domainA = domainBuilder.addPartition("a");
+        final var domainB = domainBuilder.addPartition("b");
+        final var domain = domainBuilder.build();
+
+        final var sameDomainExpression = new LogicalExpression.ComparisonWrap(new ComparisonExpression.Equal(
+                new PartitionExpression.Relative(PartitionExpression.Relative.Side.SOURCE, domain),
+                new PartitionExpression.Relative(PartitionExpression.Relative.Side.TARGET, domain)));
+
+        final var globalRule = new Rule("Same domain (global)", sameDomainExpression, Rule.RuleScope.GLOBAL);
+        final var moduleOnlyRule = new Rule("Same domain (module only)", sameDomainExpression, Rule.RuleScope.MODULE_ONLY);
+        final var packageOnlyRule = new Rule("Same domain (package only)", sameDomainExpression, Rule.RuleScope.PACKAGE_ONLY);
+
+        final var manualEnforcer = new TestRuleEnforcer(evaluator, ScopeStrategy.MANUAL);
+        final var source = new Classification.Builder().addPartition(domainA).build();
+        final var target = new Classification.Builder().addPartition(domainA).build();
+
+        final var matches = manualEnforcer.matchingRulesAtModuleLevel(List.of(globalRule, moduleOnlyRule, packageOnlyRule), source, target);
+
+        assertThat(matches).containsExactly(globalRule, moduleOnlyRule);
+    }
+
+    @Test
+    void matchingRulesAtModuleLevelReturnsEmptyWhenNoRuleMatches() {
+        final var domainBuilder = new Dimension.Builder("domain");
+        final var domainA = domainBuilder.addPartition("a");
+        final var domainB = domainBuilder.addPartition("b");
+        final var domain = domainBuilder.build();
+
+        final var sameDomainExpression = new LogicalExpression.ComparisonWrap(new ComparisonExpression.Equal(
+                new PartitionExpression.Relative(PartitionExpression.Relative.Side.SOURCE, domain),
+                new PartitionExpression.Relative(PartitionExpression.Relative.Side.TARGET, domain)));
+        final var globalRule = new Rule("Same domain", sameDomainExpression, Rule.RuleScope.GLOBAL);
+
+        final var manualEnforcer = new TestRuleEnforcer(evaluator, ScopeStrategy.MANUAL);
+        final var source = new Classification.Builder().addPartition(domainA).build();
+        final var target = new Classification.Builder().addPartition(domainB).build();
+
+        final var matches = manualEnforcer.matchingRulesAtModuleLevel(List.of(globalRule), source, target);
+
+        assertThat(matches).isEmpty();
+    }
+
     private static void invokeEnforceRules(final RuleEnforcer enforcer, final Set<MavenDependency> dependencies,
                                             final Collection<PackageClassification> packages, final List<Rule> rules) {
         final var classificationRegistry = mock(ClassificationRegistry.class);
@@ -93,6 +143,10 @@ class RuleEnforcerTest {
 
         public TestRuleEnforcer(final PackageDependencyEvaluator evaluator) {
             super(evaluator, ScopeStrategy.AUTOMATIC);
+        }
+
+        public TestRuleEnforcer(final PackageDependencyEvaluator evaluator, final ScopeStrategy scopeStrategy) {
+            super(evaluator, scopeStrategy);
         }
 
         @Override

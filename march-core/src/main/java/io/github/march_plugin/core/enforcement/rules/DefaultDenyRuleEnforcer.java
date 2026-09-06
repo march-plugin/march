@@ -12,6 +12,7 @@ import io.github.march_plugin.core.config.rules.model.Rule;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 /**
@@ -47,6 +48,33 @@ public class DefaultDenyRuleEnforcer extends RuleEnforcer {
         }
 
         throw new DependencyNotAllowedException(mavenDependency.description(), source, target);
+    }
+
+    @Override
+    public ModuleLevelMatch matchingRulesForModuleMatrix(final List<Rule> rules, final Classification source, final Classification target, final Collection<PackageClassification> packageClassifications) {
+        final var directRules = matchingRulesAtModuleLevel(rules, source, target);
+        if (!directRules.isEmpty() || getScopeStrategy() != ScopeStrategy.AUTOMATIC) {
+            return new ModuleLevelMatch(directRules, List.of());
+        }
+        return new ModuleLevelMatch(directRules, matchingRulesViaPackageFallback(source, target, rules, packageClassifications));
+    }
+
+    private List<Rule> matchingRulesViaPackageFallback(final Classification source, final Classification target, final List<Rule> rules, final Collection<PackageClassification> packageClassifications) {
+        final var ruleEvaluator = getRuleEvaluator();
+        final var sourcePackages = belongingTo(source, packageClassifications);
+        final var targetPackages = belongingTo(target, packageClassifications);
+        final var matched = new LinkedHashSet<Rule>();
+
+        for (final var sourcePackage : sourcePackages) {
+            for (final var targetPackage : targetPackages) {
+                for (final var rule : rules) {
+                    if (ruleEvaluator.evaluate(rule.definition(), sourcePackage.classification(), targetPackage.classification())) {
+                        matched.add(rule);
+                    }
+                }
+            }
+        }
+        return List.copyOf(matched);
     }
 
     private boolean isSomePackageDependencyAllowed(final Classification source, final Classification target, final List<Rule> rules, final Collection<PackageClassification> packageClassifications) {
