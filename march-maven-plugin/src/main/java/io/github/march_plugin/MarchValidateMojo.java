@@ -66,6 +66,7 @@ public class MarchValidateMojo extends AbstractMojo {
 
         try {
             // Build config
+            new MarchConfigSchemaValidator().validate(resolvedConfigFile);
             final var marchConfigDto = new MarchConfigFileReader(resolvedConfigFile).readConfig();
 
             final var dimensionRegistry = new DimensionRegistryInitializer().build(marchConfigDto.dimensions());
