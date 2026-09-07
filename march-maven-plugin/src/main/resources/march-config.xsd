@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    XML Schema to support writing config in IDE.
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+
+    <xs:element name="march">
+        <xs:complexType>
+            <xs:all>
+                <xs:element name="settings" type="settingsType" minOccurs="0"/>
+                <xs:element name="dimensions" type="dimensionsType"/>
+                <xs:element name="projectStructure" type="projectStructureType"/>
+                <xs:element name="packageTemplates" type="packageTemplatesType"/>
+                <xs:element name="modules" type="modulesType"/>
+                <xs:element name="rules" type="rulesType" minOccurs="0"/>
+            </xs:all>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- ================= settings ================= -->
+
+    <xs:complexType name="settingsType">
+        <xs:annotation>
+            <xs:documentation>Everything that is not part of the user-defined rule list. Optional -
+                omitting it, or any element inside it, falls back to defaults (DEFAULT-DENY/MANUAL for
+                the rule engine, all-checks-on-except-forbidExclusions for static enforcement).</xs:documentation>
+        </xs:annotation>
+        <xs:all>
+            <xs:element name="ruleEngine" type="ruleEngineType" minOccurs="0"/>
+            <xs:element name="staticEnforcement" type="staticEnforcementType" minOccurs="0"/>
+        </xs:all>
+    </xs:complexType>
+
+    <xs:complexType name="ruleEngineType">
+        <xs:all>
+            <xs:element name="ruleStrategy" type="ruleStrategyType" minOccurs="0"/>
+            <xs:element name="scopeStrategy" type="scopeStrategyType" minOccurs="0"/>
+        </xs:all>
+    </xs:complexType>
+
+    <xs:simpleType name="ruleStrategyType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="DEFAULT-DENY"/>
+            <xs:enumeration value="DEFAULT-ALLOW"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="scopeStrategyType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="AUTOMATIC"/>
+            <xs:enumeration value="MANUAL"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="staticEnforcementType">
+        <xs:annotation>
+            <xs:documentation>Hardcoded Maven dependency-hygiene checks that always run unconditionally
+                unless turned off individually here.</xs:documentation>
+        </xs:annotation>
+        <xs:all>
+            <xs:element name="requireManagedVersion" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="forbidInlineVersion" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="forbidInlineScope" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="forbidExclusions" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="requireVersionProperty" type="xs:boolean" minOccurs="0"/>
+        </xs:all>
+    </xs:complexType>
+
+    <!-- ================= dimensions ================= -->
+
+    <xs:complexType name="dimensionsType">
+        <xs:sequence>
+            <xs:element name="dimension" type="dimensionType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="dimensionType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="description" type="xs:string" minOccurs="0"/>
+            <xs:element name="partitions" type="partitionsType"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="partitionsType">
+        <xs:sequence>
+            <xs:element name="partition" type="partitionType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="partitionType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="description" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================= projectStructure ================= -->
+
+    <xs:complexType name="projectStructureType">
+        <xs:sequence>
+            <xs:element name="modularity" type="modularityType"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="modularityType">
+        <xs:annotation>
+            <xs:documentation>An abstract, module-level naming-convention node. Attribute values may
+                reference ${placeholder} names bound by ancestor dimension/case attributes.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="modularity" type="modularityType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="packageModularity" type="packageModularityType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="dimension" type="xs:string"/>
+        <xs:attribute name="case" type="xs:string"/>
+        <xs:attribute name="allow" type="xs:string"/>
+        <xs:attribute name="groupId" type="xs:string"/>
+        <xs:attribute name="artifactId" type="xs:string"/>
+        <xs:attribute name="rootPackage" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="packageModularityType">
+        <xs:annotation>
+            <xs:documentation>Same shape as modularity, but for package-level (not module-level)
+                naming conventions.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="packageModularity" type="packageModularityType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="dimension" type="xs:string"/>
+        <xs:attribute name="case" type="xs:string"/>
+        <xs:attribute name="allow" type="xs:string"/>
+        <xs:attribute name="name" type="xs:string"/>
+    </xs:complexType>
+
+    <!-- ================= packageTemplates ================= -->
+
+    <xs:complexType name="packageTemplatesType">
+        <xs:sequence>
+            <xs:element name="packageTemplate" type="packageTemplateType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="packageTemplateType">
+        <xs:sequence>
+            <xs:element name="jpackage" type="jpackageType" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="name" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="jpackageType">
+        <xs:sequence>
+            <xs:element name="jpackage" type="jpackageType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="partition" type="xs:string" use="required"/>
+        <xs:attribute name="optional" type="xs:boolean"/>
+    </xs:complexType>
+
+    <!-- ================= modules ================= -->
+
+    <xs:complexType name="modulesType">
+        <xs:sequence>
+            <xs:element name="module" type="moduleType"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="moduleType">
+        <xs:annotation>
+            <xs:documentation>A concrete, real Maven module, matching a module actually on disk (unlike
+                the abstract naming templates under projectStructure).</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="module" type="moduleType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="packageTemplate" type="packageTemplateRefType" minOccurs="0"/>
+            <xs:element name="virtualModule" type="virtualModuleType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="groupId" type="xs:string"/>
+        <xs:attribute name="artifactId" type="xs:string"/>
+        <xs:attribute name="partition" type="xs:string"/>
+        <xs:attribute name="rootPackage" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="packageTemplateRefType">
+        <xs:annotation>
+            <xs:documentation>References a packageTemplate declared under the top-level packageTemplates
+                by name, applying its package shape to this module.</xs:documentation>
+        </xs:annotation>
+        <xs:attribute name="name" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="virtualModuleType">
+        <xs:annotation>
+            <xs:documentation>Groups a set of real, external (third-party) dependencies so they can be
+                classified together as if they were one module.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="virtualModule" type="virtualModuleType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="virtualModuleRef" type="virtualModuleRefType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="partition" type="xs:string"/>
+        <xs:attribute name="groupId" type="xs:string"/>
+        <xs:attribute name="virtualGroupId" type="xs:string"/>
+        <xs:attribute name="virtualArtifactId" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="virtualModuleRefType">
+        <xs:annotation>
+            <xs:documentation>One real (groupId/artifactId) external dependency mapped into the
+                enclosing virtualModule.</xs:documentation>
+        </xs:annotation>
+        <xs:attribute name="groupId" type="xs:string"/>
+        <xs:attribute name="artifactId" type="xs:string"/>
+        <xs:attribute name="partition" type="xs:string"/>
+        <xs:attribute name="virtualGroupId" type="xs:string"/>
+        <xs:attribute name="virtualArtifactId" type="xs:string"/>
+    </xs:complexType>
+
+    <!-- ================= rules ================= -->
+
+    <xs:complexType name="rulesType">
+        <xs:sequence>
+            <xs:element name="rule" type="ruleType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ruleType">
+        <xs:sequence>
+            <xs:element name="description" type="xs:string"/>
+            <xs:element name="definition" type="xs:string"/>
+            <xs:element name="scope" type="validationScopeType" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:simpleType name="validationScopeType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="global"/>
+            <xs:enumeration value="module_only"/>
+            <xs:enumeration value="package_only"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+</xs:schema>
