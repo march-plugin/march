@@ -36,7 +36,7 @@ public class MarchValidateMojo extends AbstractMojo {
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
     private MavenProject project;
 
-    // Zugriff auf alle Module im Reaktor (Multi-Module Build)
+    // Access to all modules in the reactor (multi-module build)
     @Parameter(defaultValue = "${reactorProjects}", readonly = true)
     private List<MavenProject> reactorProjects;
 

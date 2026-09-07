@@ -109,7 +109,7 @@ public abstract class RuleEnforcer {
      */
     public void enforceRules(final ClassificationRegistry classificationRegistry, final ProjectModuleRegistry projectModuleRegistry, final RuleRegistry ruleRegistry) {
         final var dependencies = projectModuleRegistry.getDependencies(classificationRegistry);
-        final var packageClassifications = classificationRegistry.getAllClassifiedPackages().stream().map(ClassifiedPackage::getClassifiedPackage).toList();;
+        final var packageClassifications = classificationRegistry.getAllClassifiedPackages().stream().map(ClassifiedPackage::getClassifiedPackage).toList();
 
         for (final var dependency : dependencies) {
             enforceRulesOnMavenDependencies(dependency, ruleRegistry.getRules(), packageClassifications);
