@@ -2,6 +2,7 @@ package io.github.march_plugin.core.config.rules.model.ast;
 
 import io.github.march_plugin.core.config.dimensions.model.Dimension;
 import io.github.march_plugin.core.config.rules.exceptions.NullComparisonException;
+import io.github.march_plugin.core.config.rules.exceptions.RedundantLogicalOperationException;
 import io.github.march_plugin.core.config.rules.model.ast.ComparisonExpression;
 import io.github.march_plugin.core.config.rules.model.ast.LogicalExpression;
 import io.github.march_plugin.core.config.rules.model.ast.PartitionExpression;
@@ -50,8 +51,14 @@ class LogicalExpressionTest {
     }
 
     @Test
-    void shouldThrowOnRedundantBinaryLogic() {
+    void shouldThrowOnRedundantAnd() {
         assertThatThrownBy(() -> new LogicalExpression.And(validComparison, validComparison))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(RedundantLogicalOperationException.class);
+    }
+
+    @Test
+    void shouldThrowOnRedundantOr() {
+        assertThatThrownBy(() -> new LogicalExpression.Or(validComparison, validComparison))
+                .isInstanceOf(RedundantLogicalOperationException.class);
     }
 }

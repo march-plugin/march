@@ -1,6 +1,7 @@
 package io.github.march_plugin.core.config.rules.model.ast;
 
 import io.github.march_plugin.core.config.rules.exceptions.NullComparisonException;
+import io.github.march_plugin.core.config.rules.exceptions.RedundantLogicalOperationException;
 
 import java.util.Objects;
 
@@ -118,7 +119,7 @@ public sealed interface LogicalExpression {
         }
 
         if (Objects.equals(left, right)) {
-            throw new IllegalArgumentException("Redundant logical operation: left and right sides are identical.");
+            throw new RedundantLogicalOperationException(left.toString());
         }
     }
 }

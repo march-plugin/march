@@ -51,7 +51,7 @@ public final class RuleRegistry {
     public static class Builder {
         private final List<Rule> rules = new ArrayList<>();
         private RuleStrategy ruleStrategy;
-        private ScopeStrategy scopeStrategy = ScopeStrategy.AUTOMATIC;
+        private ScopeStrategy scopeStrategy = ScopeStrategy.MANUAL;
 
         /**
          * Adds a rule to the registry.

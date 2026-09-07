@@ -87,6 +87,9 @@ public class MarchModuleMatrixMojo extends AbstractMojo {
         validateColumnWidth(maxColumnWidth);
 
         try {
+            if (configFile.isFile()) {
+                new MarchConfigSchemaValidator().validate(configFile);
+            }
             final var marchConfigDto = new MarchConfigFileReader(configFile).readConfig();
 
             final var dimensionRegistry = new DimensionRegistryInitializer().build(marchConfigDto.dimensions());
