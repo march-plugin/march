@@ -24,7 +24,7 @@ import static org.mockito.Mockito.when;
 
 class ModuleDependencyEnforcerTest {
 
-    private final ModuleDependencyEnforcer enforcer = new ModuleDependencyEnforcer();
+    private final ModuleDependencyEnforcer enforcer = new ModuleDependencyEnforcer(StaticEnforcementConfig.defaults());
 
     private static ModuleCoordinates coords(final String groupId, final String artifactId) {
         return new ModuleCoordinates(groupId, artifactId);
@@ -117,7 +117,7 @@ class ModuleDependencyEnforcerTest {
     }
 
     @Test
-    void shouldThrowWhenDependencyDefinesExclusion() {
+    void shouldPassWhenDependencyDefinesExclusionByDefault() {
         final var source = coords("io.example", "app");
         final var target = coords("io.example", "lib");
         final var excluded = coords("io.example", "transitive");
@@ -126,8 +126,69 @@ class ModuleDependencyEnforcerTest {
         final var projectModuleRegistry = registryWith(source, List.of(dependency), List.of());
         final var classificationRegistry = classificationRegistryKnowing(source, target);
 
-        assertThatThrownBy(() -> enforcer.validateDependencyDefinitions(projectModuleRegistry, classificationRegistry))
+        assertThatCode(() -> enforcer.validateDependencyDefinitions(projectModuleRegistry, classificationRegistry))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void shouldThrowWhenDependencyDefinesExclusionAndForbidExclusionsEnabled() {
+        final var enforcerForbiddingExclusions = new ModuleDependencyEnforcer(
+                new StaticEnforcementConfig(true, true, true, true));
+        final var source = coords("io.example", "app");
+        final var target = coords("io.example", "lib");
+        final var excluded = coords("io.example", "transitive");
+        final var dependency = rawDependency(target, null, null, Set.of(excluded));
+
+        final var projectModuleRegistry = registryWith(source, List.of(dependency), List.of());
+        final var classificationRegistry = classificationRegistryKnowing(source, target);
+
+        assertThatThrownBy(() -> enforcerForbiddingExclusions.validateDependencyDefinitions(projectModuleRegistry, classificationRegistry))
                 .isInstanceOf(ForbiddenExclusionException.class);
+    }
+
+    @Test
+    void shouldPassWhenManagedDependencyHasNoVersionAndRequireManagedVersionDisabled() {
+        final var enforcerNotRequiringVersion = new ModuleDependencyEnforcer(
+                new StaticEnforcementConfig(false, true, true, false));
+        final var source = coords("io.example", "app");
+        final var target = coords("io.example", "lib");
+        final var managedDependency = rawDependency(target, null, null, Set.of());
+
+        final var projectModuleRegistry = registryWith(source, List.of(), List.of(managedDependency));
+        final var classificationRegistry = classificationRegistryKnowing(source);
+
+        assertThatCode(() -> enforcerNotRequiringVersion.validateDependencyDefinitions(projectModuleRegistry, classificationRegistry))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void shouldPassWhenDependencyDefinesInlineVersionAndForbidInlineVersionDisabled() {
+        final var enforcerAllowingInlineVersion = new ModuleDependencyEnforcer(
+                new StaticEnforcementConfig(true, false, true, false));
+        final var source = coords("io.example", "app");
+        final var target = coords("io.example", "lib");
+        final var dependency = rawDependency(target, "1.0.0", null, Set.of());
+
+        final var projectModuleRegistry = registryWith(source, List.of(dependency), List.of());
+        final var classificationRegistry = classificationRegistryKnowing(source, target);
+
+        assertThatCode(() -> enforcerAllowingInlineVersion.validateDependencyDefinitions(projectModuleRegistry, classificationRegistry))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void shouldPassWhenDependencyDefinesInlineScopeAndForbidInlineScopeDisabled() {
+        final var enforcerAllowingInlineScope = new ModuleDependencyEnforcer(
+                new StaticEnforcementConfig(true, true, false, false));
+        final var source = coords("io.example", "app");
+        final var target = coords("io.example", "lib");
+        final var dependency = rawDependency(target, null, "test", Set.of());
+
+        final var projectModuleRegistry = registryWith(source, List.of(dependency), List.of());
+        final var classificationRegistry = classificationRegistryKnowing(source, target);
+
+        assertThatCode(() -> enforcerAllowingInlineScope.validateDependencyDefinitions(projectModuleRegistry, classificationRegistry))
+                .doesNotThrowAnyException();
     }
 
     @Test

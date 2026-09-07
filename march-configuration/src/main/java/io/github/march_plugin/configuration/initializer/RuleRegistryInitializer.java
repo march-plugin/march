@@ -2,7 +2,6 @@ package io.github.march_plugin.configuration.initializer;
 
 import io.github.march_plugin.configuration.dto.rules.RuleConfigurationDto;
 import io.github.march_plugin.configuration.dto.rules.RuleDto;
-import io.github.march_plugin.configuration.dto.rules.RulesDto;
 import io.github.march_plugin.core.config.rules.config.RuleRegistry;
 import io.github.march_plugin.core.config.rules.config.RuleStrategy;
 import io.github.march_plugin.core.config.rules.config.ScopeStrategy;
@@ -29,31 +28,30 @@ public class RuleRegistryInitializer {
     }
 
     /**
-     * Builds the rule registry from the given rule configuration.
+     * Builds the rule registry from the given rules and rule strategy configuration.
      *
-     * @param rulesDto the rules and rule strategy declared in the March configuration
+     * @param rules the rules declared in March config
+     * @param ruleConfigurationDto the rule strategy declared in March config
      * @return the built rule registry
      */
-    public RuleRegistry build(final RulesDto rulesDto) {
-        registerRuleConfig(rulesDto.configuration());
-        registerRules(rulesDto.rules());
+    public RuleRegistry build(final List<RuleDto> rules, final RuleConfigurationDto ruleConfigurationDto) {
+        registerRuleConfig(ruleConfigurationDto);
+        registerRules(rules == null ? List.of() : rules);
         return ruleRegistryBuilder.build();
     }
 
     private void registerRuleConfig(final RuleConfigurationDto ruleConfigurationDto) {
-        final var ruleStrategy = switch (ruleConfigurationDto.ruleStrategy()) {
+        final var ruleStrategyDto = ruleConfigurationDto == null ? null : ruleConfigurationDto.ruleStrategy();
+        ruleRegistryBuilder.setRuleStrategy(ruleStrategyDto == null ? RuleStrategy.DEFAULT_DENY : switch (ruleStrategyDto) {
             case DEFAULT_DENY -> RuleStrategy.DEFAULT_DENY;
             case DEFAULT_ALLOW -> RuleStrategy.DEFAULT_ALLOW;
-        };
-        ruleRegistryBuilder.setRuleStrategy(ruleStrategy);
+        });
 
-        final var scopeStrategyDto = ruleConfigurationDto.scopeStrategy();
-        if (scopeStrategyDto != null) {
-            ruleRegistryBuilder.setScopeStrategy(switch (scopeStrategyDto) {
-                case AUTOMATIC -> ScopeStrategy.AUTOMATIC;
-                case MANUAL -> ScopeStrategy.MANUAL;
-            });
-        }
+        final var scopeStrategyDto = ruleConfigurationDto == null ? null : ruleConfigurationDto.scopeStrategy();
+        ruleRegistryBuilder.setScopeStrategy(scopeStrategyDto == null ? ScopeStrategy.MANUAL : switch (scopeStrategyDto) {
+            case AUTOMATIC -> ScopeStrategy.AUTOMATIC;
+            case MANUAL -> ScopeStrategy.MANUAL;
+        });
     }
 
     private void registerRules(final List<RuleDto> rules) {

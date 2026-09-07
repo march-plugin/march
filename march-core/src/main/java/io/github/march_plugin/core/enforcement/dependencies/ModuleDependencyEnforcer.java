@@ -14,6 +14,17 @@ import io.github.march_plugin.core.project.ProjectModuleRegistry;
  */
 public class ModuleDependencyEnforcer {
 
+    private final StaticEnforcementConfig config;
+
+    /**
+     * Constructs the enforcer.
+     *
+     * @param config configures which checks below are enabled
+     */
+    public ModuleDependencyEnforcer(final StaticEnforcementConfig config) {
+        this.config = config;
+    }
+
     /**
      * Validates the dependency declarations of all modules in the project.
      *
@@ -24,9 +35,11 @@ public class ModuleDependencyEnforcer {
         for (final var projectModule : projectModuleRegistry.getAllProjectModules().entrySet()) {
             final var sourceCoordinates = projectModule.getKey();
 
-            for (final var dependency : projectModule.getValue().managedDependencies()) {
-                if (dependency.version() == null) {
-                    throw new VersionNotDefinedException(sourceCoordinates, new ModuleCoordinates(dependency.moduleCoordinates().getGroupId(), dependency.moduleCoordinates().getArtifactId()));
+            if (config.requireManagedVersion()) {
+                for (final var dependency : projectModule.getValue().managedDependencies()) {
+                    if (dependency.version() == null) {
+                        throw new VersionNotDefinedException(sourceCoordinates, new ModuleCoordinates(dependency.moduleCoordinates().getGroupId(), dependency.moduleCoordinates().getArtifactId()));
+                    }
                 }
             }
 
@@ -36,18 +49,20 @@ public class ModuleDependencyEnforcer {
                 final var target = registry.getClassifiedModule(dependencyCoordinates);
 
 
-                if (dep.version() != null) {
+                if (config.forbidInlineVersion() && dep.version() != null) {
                     throw new ForbiddenInlineVersionException(source.getModuleCoordinates(), dep.version(), dependencyCoordinates);
                 }
 
-                if (dep.scope() != null) {
+                if (config.forbidInlineScope() && dep.scope() != null) {
                     throw new ForbiddenInlineScopeException(source.getModuleCoordinates(), dep.scope(), dependencyCoordinates);
                 }
 
-                for (final var exclusion : dep.exclusions()) {
-                    final var excludedModule = new ModuleCoordinates(exclusion.getGroupId(), exclusion.getArtifactId());
-                    final var dependencyDescription = source.getModuleCoordinates() + " -> " + target.getModuleCoordinates();
-                    throw new ForbiddenExclusionException(dependencyDescription, excludedModule.toString());
+                if (config.forbidExclusions()) {
+                    for (final var exclusion : dep.exclusions()) {
+                        final var excludedModule = new ModuleCoordinates(exclusion.getGroupId(), exclusion.getArtifactId());
+                        final var dependencyDescription = source.getModuleCoordinates() + " -> " + target.getModuleCoordinates();
+                        throw new ForbiddenExclusionException(dependencyDescription, excludedModule.toString());
+                    }
                 }
             }
 
