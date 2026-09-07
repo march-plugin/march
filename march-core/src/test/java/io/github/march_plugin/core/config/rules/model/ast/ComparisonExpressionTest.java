@@ -5,18 +5,18 @@ import io.github.march_plugin.core.config.rules.exceptions.ConstantComparisonExc
 import io.github.march_plugin.core.config.rules.exceptions.DimensionMismatchException;
 import io.github.march_plugin.core.config.rules.exceptions.DuplicatePartitionException;
 import io.github.march_plugin.core.config.rules.exceptions.NullComparisonException;
-import io.github.march_plugin.core.config.rules.exceptions.RedundantComparisonException;
-import io.github.march_plugin.core.config.rules.model.ast.ComparisonExpression;
-import io.github.march_plugin.core.config.rules.model.ast.PartitionExpression;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Stream;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ComparisonExpressionTest {
@@ -24,6 +24,7 @@ class ComparisonExpressionTest {
     private static Dimension layerDim;
     private static Dimension.Partition serviceLayer;
     private static Dimension.Partition uiLayer;
+    private static Dimension.Partition webLayer;
     private static Dimension regionDim;
     private static Dimension.Partition euRegion;
     private static Dimension.Partition usRegion;
@@ -35,6 +36,7 @@ class ComparisonExpressionTest {
         final var layerDimBuilder = new Dimension.Builder("layer");
         serviceLayer = layerDimBuilder.addPartition("service");
         uiLayer = layerDimBuilder.addPartition("ui");
+        webLayer = layerDimBuilder.addPartition("web");
         layerDim = layerDimBuilder.build();
 
         final var layerDimBuilder2 = new Dimension.Builder("region");
@@ -60,7 +62,6 @@ class ComparisonExpressionTest {
         return Stream.of(
                 // Existing cases
                 Arguments.of(fixedService, fixedUI, ConstantComparisonException.class),
-                Arguments.of(sourceLayer, sourceLayer, RedundantComparisonException.class),
                 Arguments.of(sourceLayer, targetRegion, DimensionMismatchException.class),
                 Arguments.of(null, sourceLayer, NullComparisonException.class),
                 Arguments.of(sourceLayer, null, NullComparisonException.class),
@@ -79,5 +80,45 @@ class ComparisonExpressionTest {
     void shouldThrowOnInDuplicates() {
         assertThatThrownBy(() -> new ComparisonExpression.In(sourceLayer, List.of(fixedService, fixedService)))
                 .isInstanceOf(DuplicatePartitionException.class);
+    }
+
+    @Nested
+    class InEqualityIgnoresOrder {
+
+        @Test
+        void shouldTreatReorderedRightsAsEqual() {
+            final var first = new ComparisonExpression.In(sourceLayer, List.of(fixedService, new PartitionExpression.Fixed(uiLayer), new PartitionExpression.Fixed(webLayer)));
+            final var second = new ComparisonExpression.In(sourceLayer, List.of(new PartitionExpression.Fixed(webLayer), fixedService, new PartitionExpression.Fixed(uiLayer)));
+
+            assertThat(first).isEqualTo(second);
+        }
+
+        @Test
+        void shouldMatchHashCodeWheneverEqual() {
+            final var first = new ComparisonExpression.In(sourceLayer, List.of(fixedService, new PartitionExpression.Fixed(uiLayer)));
+            final var second = new ComparisonExpression.In(sourceLayer, List.of(new PartitionExpression.Fixed(uiLayer), fixedService));
+
+            assertThat(first.hashCode()).isEqualTo(second.hashCode());
+        }
+
+        @Test
+        void shouldDeduplicateReorderedInInAHashSet() {
+            final var first = new ComparisonExpression.In(sourceLayer, List.of(fixedService, new PartitionExpression.Fixed(uiLayer)));
+            final var second = new ComparisonExpression.In(sourceLayer, List.of(new PartitionExpression.Fixed(uiLayer), fixedService));
+
+            final var seen = new HashSet<ComparisonExpression>();
+            seen.add(first);
+            seen.add(second);
+
+            assertThat(seen).hasSize(1);
+        }
+
+        @Test
+        void shouldNotBeEqualWhenRightsDiffer() {
+            final var first = new ComparisonExpression.In(sourceLayer, List.of(fixedService, new PartitionExpression.Fixed(uiLayer)));
+            final var second = new ComparisonExpression.In(sourceLayer, List.of(fixedService, new PartitionExpression.Fixed(webLayer)));
+
+            assertThat(first).isNotEqualTo(second);
+        }
     }
 }

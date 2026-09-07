@@ -27,6 +27,8 @@ public class RuleDefinitionCompiler {
      */
     public LogicalExpression compile(final String rule) {
         final var tokens = new Lexer(rule).tokenize();
-        return new PolicyParser(tokens, dimensionRegistry).parse();
+        final var expression = new PolicyParser(tokens, dimensionRegistry).parse();
+        new RuleRedundancyValidator().validate(expression);
+        return expression;
     }
 }

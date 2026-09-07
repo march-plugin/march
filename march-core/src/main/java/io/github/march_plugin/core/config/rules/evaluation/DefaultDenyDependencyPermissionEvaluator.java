@@ -4,7 +4,7 @@ import io.github.march_plugin.core.config.dimensions.model.Dimension;
 import io.github.march_plugin.core.config.dimensions.model.DimensionRegistry;
 import io.github.march_plugin.core.config.projectstructure.model.ModuleModularity;
 import io.github.march_plugin.core.config.rules.config.RuleRegistry;
-import io.github.march_plugin.core.config.rules.evaluation.ast.EvaluatedLogicalExpression;
+import io.github.march_plugin.core.config.rules.model.ast.LogicalExpression;
 
 import java.util.Set;
 
@@ -22,9 +22,9 @@ public class DefaultDenyDependencyPermissionEvaluator extends DependencyPermissi
     @Override
     public DependencyPermission reduce(final RuleRegistry ruleRegistry, final DimensionRegistry dimensionRegistry, final Set<Dimension.Partition> source, final Set<Dimension.Partition> target) {
         final var partialMatch = evaluateRules(ruleRegistry, dimensionRegistry, source, target).stream()
-                .filter(r -> !(r instanceof EvaluatedLogicalExpression.AlwaysFalse)).toList();
+                .filter(r -> !(r instanceof LogicalExpression.AlwaysFalse)).toList();
 
-        if (partialMatch.stream().anyMatch(x -> x instanceof EvaluatedLogicalExpression.AlwaysTrue)) {
+        if (partialMatch.stream().anyMatch(x -> x instanceof LogicalExpression.AlwaysTrue)) {
             return new DependencyPermission.Allowed();
         }
 

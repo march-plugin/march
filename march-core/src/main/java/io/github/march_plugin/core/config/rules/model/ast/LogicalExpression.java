@@ -1,9 +1,6 @@
 package io.github.march_plugin.core.config.rules.model.ast;
 
 import io.github.march_plugin.core.config.rules.exceptions.NullComparisonException;
-import io.github.march_plugin.core.config.rules.exceptions.RedundantLogicalOperationException;
-
-import java.util.Objects;
 
 /**
  * Represents logical composition (AND, OR, NOT) in the rule AST.
@@ -24,7 +21,9 @@ public sealed interface LogicalExpression {
          * @param right the right-hand side logical expression
          */
         public And {
-            LogicalExpression.validate(left, right);
+            if (left == null || right == null) {
+                throw new NullComparisonException();
+            }
         }
 
         @Override
@@ -51,7 +50,9 @@ public sealed interface LogicalExpression {
          * @param right the right-hand side logical expression
          */
         public Or {
-            LogicalExpression.validate(left, right);
+            if (left == null || right == null) {
+                throw new NullComparisonException();
+            }
         }
 
         @Override
@@ -111,15 +112,24 @@ public sealed interface LogicalExpression {
     }
 
     /**
-     * Validates that binary logical operations are structurally sound.
+     * The result of reducing an expression that is now known to always hold, regardless of any dimension
+     * still left unresolved.
      */
-    private static void validate(final LogicalExpression left, final LogicalExpression right) {
-        if (left == null || right == null) {
-            throw new NullComparisonException();
+    record AlwaysTrue() implements LogicalExpression {
+        @Override
+        public String toString() {
+            return "TRUE";
         }
+    }
 
-        if (Objects.equals(left, right)) {
-            throw new RedundantLogicalOperationException(left.toString());
+    /**
+     * The result of reducing an expression that is now known to never hold, regardless of any dimension
+     * still left unresolved.
+     */
+    record AlwaysFalse() implements LogicalExpression {
+        @Override
+        public String toString() {
+            return "FALSE";
         }
     }
 }

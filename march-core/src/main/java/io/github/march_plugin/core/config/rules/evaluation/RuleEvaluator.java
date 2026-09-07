@@ -27,6 +27,10 @@ public class RuleEvaluator {
             case LogicalExpression.Or or -> evaluate(or.left(), sourcePartitions, targetPartitions) || evaluate(or.right(), sourcePartitions, targetPartitions);
             case LogicalExpression.ComparisonWrap wrap -> evaluateComparison(wrap.comparison(), sourcePartitions, targetPartitions);
             case LogicalExpression.Not not -> !evaluate(not.expression(), sourcePartitions, targetPartitions);
+
+            // AlwaysTrue/AlwaysFalse only occur as RuleReducer output, never in a freshly parsed rule.
+            case LogicalExpression.AlwaysTrue ignored -> true;
+            case LogicalExpression.AlwaysFalse ignored -> false;
         };
     }
 

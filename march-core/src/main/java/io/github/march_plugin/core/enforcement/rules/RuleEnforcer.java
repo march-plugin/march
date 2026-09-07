@@ -8,7 +8,7 @@ import io.github.march_plugin.core.config.rules.config.RuleRegistry;
 import io.github.march_plugin.core.config.rules.config.ScopeStrategy;
 import io.github.march_plugin.core.config.rules.evaluation.RuleEvaluator;
 import io.github.march_plugin.core.config.rules.evaluation.RuleReducer;
-import io.github.march_plugin.core.config.rules.evaluation.ast.EvaluatedLogicalExpression;
+import io.github.march_plugin.core.config.rules.model.ast.LogicalExpression;
 import io.github.march_plugin.core.enforcement.dependencies.ForbiddenDependency;
 import io.github.march_plugin.core.enforcement.dependencies.PackageDependencyEvaluator;
 import io.github.march_plugin.core.project.MavenDependency;
@@ -59,7 +59,7 @@ public abstract class RuleEnforcer {
     protected boolean matchesAtModuleLevel(final Rule rule, final Classification source, final Classification target) {
         return switch (scopeStrategy) {
             case AUTOMATIC -> ruleReducer.reduce(rule.definition(), source.getPartitions(), target.getPartitions(), Map.of(), Map.of())
-                    instanceof EvaluatedLogicalExpression.AlwaysTrue;
+                    instanceof LogicalExpression.AlwaysTrue;
             case MANUAL -> !rule.ruleScope().equals(Rule.RuleScope.PACKAGE_ONLY)
                     && ruleEvaluator.evaluate(rule.definition(), source, target);
         };

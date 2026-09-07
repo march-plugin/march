@@ -11,7 +11,7 @@ import io.github.march_plugin.core.config.projectstructure.model.ModuleModularit
 import io.github.march_plugin.core.config.rules.RuleStrategyResolver;
 import io.github.march_plugin.core.config.rules.config.RuleRegistry;
 import io.github.march_plugin.core.config.rules.evaluation.DependencyPermission;
-import io.github.march_plugin.core.config.rules.evaluation.ast.EvaluatedLogicalExpression;
+import io.github.march_plugin.core.config.rules.model.ast.LogicalExpression;
 import io.github.march_plugin.core.config.rules.parser.RuleDefinitionCompiler;
 import io.github.march_plugin.core.exceptions.MarchViolationException;
 import org.apache.maven.plugin.AbstractMojo;
@@ -219,8 +219,8 @@ public class MarchMatrixMojo extends AbstractMojo {
         return result;
     }
 
-    private Map<EvaluatedLogicalExpression, Character> printDataRows(final Map<List<Dimension.Partition>, List<DependencyPermission>> targetToPermissionMap) {
-        final var partiallyAllowedTrees = new HashMap<EvaluatedLogicalExpression, Character>();
+    private Map<LogicalExpression, Character> printDataRows(final Map<List<Dimension.Partition>, List<DependencyPermission>> targetToPermissionMap) {
+        final var partiallyAllowedTrees = new HashMap<LogicalExpression, Character>();
 
         for (final var target : targetToPermissionMap.entrySet()) {
             final var label = target.getKey().stream()
