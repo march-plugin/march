@@ -2,6 +2,7 @@ package io.github.march_plugin.core.config.rules.evaluation.ast;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 
 public sealed interface EvaluatedComparisonExpression {
 
@@ -59,6 +60,11 @@ public sealed interface EvaluatedComparisonExpression {
                 return left.equals(other.left) && new HashSet<>(rights).equals(new HashSet<>(other.rights));
             }
             return false;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(left, new HashSet<>(rights));
         }
     }
 }
