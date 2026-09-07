@@ -40,10 +40,12 @@ Add the plugin to your root `pom.xml`:
 Describe what's allowed in `march-config.xml`:
 
 ```xml
-<rules>
-    <configuration>
-        <strategy>DEFAULT-DENY</strategy>
-    </configuration>
+<march>
+    <settings>
+        <ruleEngine>
+            <ruleStrategy>DEFAULT-DENY</ruleStrategy>
+        </ruleEngine>
+    </settings>
     <rules>
         <rule>
             <description>Impl modules may depend on their own API module</description>
@@ -54,11 +56,20 @@ Describe what's allowed in `march-config.xml`:
             </definition>
         </rule>
     </rules>
-</rules>
+</march>
 ```
 
-Under `DEFAULT-DENY`, any dependency that isn't explicitly allowed fails the build —
-whether it's a `<dependency>` in a `pom.xml` or an actual import in your code.
+Under `DEFAULT-DENY`, any unallowed dependency fails the build. This covers a `<dependency>`
+in a `pom.xml` and an actual import in your code.
+
+Use this xsd for IDE-support when writing March Config file.
+
+```xml
+<march xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/march-plugin/march/main/march-maven-plugin/src/main/resources/march-config.xsd">
+  <!-- ...  -->
+</march>
+```
 
 A march config (the XML file you point `<configFile>` at) has four parts, and they build on
 each other in this order:
@@ -154,7 +165,7 @@ For the `projectStructure` defined above, classifying the `order` domain looks l
 
 `order-impl` sets its own `partition="impl"` (matching the `abstraction` dimension that
 `projectStructure` introduces at that level) and inherits `partition="order"` from its
-parent — so its full classification is `domain.order` + `abstraction.impl`, exactly what
+parent. Its full classification is `domain.order` + `abstraction.impl`. That's exactly what
 rules compare against with `source.domain` / `source.abstraction`.
 
 The `<packageTemplate>` reference is where `layer` comes in. `<packageTemplates>` exist so
@@ -181,8 +192,37 @@ repeating the same structure inline for every domain's api/impl module:
 `name` is the literal sub-package folder name, `partition` is the `layer` value it's
 classified as, and `optional="true"` allows a package to be absent without failing
 structural validation. The `service` package inside `order-impl` ends up classified as
-`domain.order` + `abstraction.impl` + `layer.service` — inherited from the module, plus its
-own layer.
+`domain.order` + `abstraction.impl` + `layer.service`. It inherits domain and abstraction
+from the module, and adds its own layer.
+
+### Classifying external dependencies with virtual modules
+
+Rules must also govern third-party dependencies, like a logging library, even though march
+never sees their source. `virtualModule` and `virtualModuleRef` classify external
+`groupId:artifactId` coordinates as if they were your own modules. The same rules then cover
+them:
+
+```xml
+<module artifactId="util" partition="util">
+    <virtualModule partition="logging" virtualGroupId="com.example.util.logging" virtualArtifactId="logging">
+        <virtualModuleRef partition="api" groupId="org.slf4j" artifactId="slf4j-api"
+                           virtualGroupId="com.example.util.logging" virtualArtifactId="logging-api"/>
+        <virtualModuleRef partition="impl" groupId="org.apache.logging.log4j" artifactId="log4j-slf4j2-impl"
+                           virtualGroupId="com.example.util.logging" virtualArtifactId="logging-impl"/>
+    </virtualModule>
+</module>
+```
+
+`virtualModule` groups related external dependencies under one classification. Here that's
+`util.logging`, split further by `package_abstraction`. Each `virtualModuleRef` maps one real
+`groupId:artifactId` onto a `virtualGroupId:virtualArtifactId` pair. That pair is the identity
+march uses in its classification tree and in rule violation messages. `virtualModule` can nest
+inside another `virtualModule` to classify along more than one dimension, the same way real
+modules do.
+
+This isn't optional. **Every `<dependency>` in the project, including test-scoped ones, must
+resolve to a real classified module or a `virtualModuleRef`.** An unclassified dependency fails
+the build. Test frameworks need a `virtualModule`/`virtualModuleRef` too.
 
 ## Rules and strategy
 
@@ -217,6 +257,32 @@ You compare a side's dimension against a fixed partition, another side's dimensi
 
 Supported operators: `==`, `!=`, `IN <dimension>.(a|b|c)`, combined with `AND`, `OR`, `!`
 (NOT) and parentheses (`AND` binds tighter than `OR`).
+
+## Static dependency-declaration checks
+
+march also enforces a few Maven dependency-hygiene checks, independent of `<rules>`. They run
+on every `<dependency>` and `dependencyManagement` entry, on every build. `<staticEnforcement>`
+(inside `<settings>`) turns individual checks off. Omit it entirely to keep the defaults:
+
+```xml
+<settings>
+    <staticEnforcement>
+        <requireManagedVersion>true</requireManagedVersion>
+        <forbidInlineVersion>true</forbidInlineVersion>
+        <forbidInlineScope>true</forbidInlineScope>
+        <forbidExclusions>false</forbidExclusions>
+        <requireVersionProperty>true</requireVersionProperty>
+    </staticEnforcement>
+</settings>
+```
+
+| Check | Default | Rejects |
+|---|---|---|
+| `requireManagedVersion` | `true` | A `dependencyManagement` entry with no `<version>`. |
+| `forbidInlineVersion` | `true` | A `<dependency>` declaring its own `<version>` instead of relying on `dependencyManagement`. |
+| `forbidInlineScope` | `true` | A `<dependency>` declaring its own `<scope>` instead of relying on `dependencyManagement`. |
+| `forbidExclusions` | `false` | A `<dependency>` declaring any `<exclusions>` at all. |
+| `requireVersionProperty` | `true` | A version (inline or in `dependencyManagement`) that isn't a `${property}` reference. |
 
 ## Inspecting your configuration
 
@@ -257,6 +323,26 @@ mvn march:matrix -Dclassifications="{domain(article;order);layer(api;impl)}" -Dm
 A rule's `<scope>` (see [Rules and strategy](#rules-and-strategy)) matters here too: `module_only`
 rules are excluded, since the matrix only ever evaluates package-level (bytecode) dependencies.
 
+### `march:module-matrix`
+
+Prints a module-level dependency permission matrix across every real, fully classified module.
+It's the module-level counterpart to `march:matrix`'s package-level, abstract view. A letter
+marks the deciding rule. Under `DEFAULT-DENY` it's the rule that *allows* the dependency (blank
+means forbidden by default). Under `DEFAULT-ALLOW` it's the rule that *forbids* it (`OK` means
+allowed by default). With `DEFAULT-DENY` and `AUTOMATIC` scope strategy, a lowercase letter means
+the dependency is allowed only via the package-level fallback, with no direct module-level rule.
+
+```
+mvn march:module-matrix
+mvn march:module-matrix -Dmarch.columnWidth=6
+mvn march:module-matrix -Dmarch.showRules=false
+```
+
+- `-Dmarch.columnWidth`: characters shown per column before a label truncates (default `4`).
+- `-Dmarch.showRules`: whether cells show which rule matched (default `true`). Set to `false` to
+  collapse cells to just `OK` (allowed) or blank (forbidden), without revealing which specific
+  rule decided that.
+
 ## License
 
-Apache License 2.0 — see [LICENSE](LICENSE).
+Apache License 2.0. See [LICENSE](LICENSE).
