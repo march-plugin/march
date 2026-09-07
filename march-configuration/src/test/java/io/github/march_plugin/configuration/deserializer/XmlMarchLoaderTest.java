@@ -24,7 +24,8 @@ class XmlMarchLoaderTest {
         assertThat(dto.projectStructure()).isNull();
         assertThat(dto.packageTemplates()).isNull();
         assertThat(dto.modules()).isNull();
-        assertThat(dto.rules()).isNull();
+        assertThat(dto.settings()).isNull();
+        assertThat(dto.rules()).isEmpty();
     }
 
     @Test

@@ -90,7 +90,7 @@ public class MarchModuleMatrixMojo extends AbstractMojo {
             final var marchConfigDto = new MarchConfigFileReader(configFile).readConfig();
 
             final var dimensionRegistry = new DimensionRegistryInitializer().build(marchConfigDto.dimensions());
-            final var ruleRegistry = new RuleRegistryInitializer(new RuleDefinitionCompiler(dimensionRegistry)).build(marchConfigDto.rules());
+            final var ruleRegistry = new RuleRegistryInitializer(new RuleDefinitionCompiler(dimensionRegistry)).build(marchConfigDto.rules(), marchConfigDto.ruleEngine());
             final var projectStructureRoot = new ProjectStructureInitializer(dimensionRegistry).build(marchConfigDto.projectStructure());
             final var packageTemplateRegistry = new PackageTemplateRegistryInitializer().build(marchConfigDto.packageTemplates());
             final var classificationRegistry = new ClassificationRegistryInitializer(projectStructureRoot, packageTemplateRegistry).build(marchConfigDto.modules().module());

@@ -2,6 +2,7 @@ package io.github.march_plugin;
 
 import io.github.march_plugin.configuration.deserializer.MarchConfigFileReader;
 import io.github.march_plugin.configuration.initializer.ClassificationRegistryInitializer;
+import io.github.march_plugin.configuration.initializer.StaticEnforcementConfigInitializer;
 import io.github.march_plugin.configuration.initializer.DimensionRegistryInitializer;
 import io.github.march_plugin.configuration.initializer.PackageTemplateRegistryInitializer;
 import io.github.march_plugin.configuration.initializer.ProjectStructureInitializer;
@@ -68,7 +69,7 @@ public class MarchValidateMojo extends AbstractMojo {
             final var marchConfigDto = new MarchConfigFileReader(resolvedConfigFile).readConfig();
 
             final var dimensionRegistry = new DimensionRegistryInitializer().build(marchConfigDto.dimensions());
-            final var ruleRegistry = new RuleRegistryInitializer(new RuleDefinitionCompiler(dimensionRegistry)).build(marchConfigDto.rules());
+            final var ruleRegistry = new RuleRegistryInitializer(new RuleDefinitionCompiler(dimensionRegistry)).build(marchConfigDto.rules(), marchConfigDto.ruleEngine());
             final var projectStructureRoot = new ProjectStructureInitializer(dimensionRegistry).build(marchConfigDto.projectStructure());
             final var packageTemplateRegistry = new PackageTemplateRegistryInitializer().build(marchConfigDto.packageTemplates());
             final var classificationRegistry = new ClassificationRegistryInitializer(projectStructureRoot, packageTemplateRegistry).build(marchConfigDto.modules().module());
@@ -81,7 +82,8 @@ public class MarchValidateMojo extends AbstractMojo {
             new ProjectComponentEnforcer().validateComponentExistence(projectModuleRegistry, classificationRegistry);
 
             // Validate dependency definitions
-            new ModuleDependencyEnforcer().validateDependencyDefinitions(projectModuleRegistry, classificationRegistry);
+            final var staticEnforcementConfig = new StaticEnforcementConfigInitializer().build(marchConfigDto.staticEnforcement());
+            new ModuleDependencyEnforcer(staticEnforcementConfig).validateDependencyDefinitions(projectModuleRegistry, classificationRegistry);
 
 
             final var ruleStrategyResolver = new RuleStrategyResolver(ruleRegistry.getRuleStrategy(), ruleRegistry.getScopeStrategy());

@@ -3,7 +3,6 @@ package io.github.march_plugin.configuration.initializer;
 import io.github.march_plugin.configuration.dto.rules.RuleConfigurationDto;
 import io.github.march_plugin.configuration.dto.rules.RuleDto;
 import io.github.march_plugin.configuration.dto.rules.RuleStrategyDto;
-import io.github.march_plugin.configuration.dto.rules.RulesDto;
 import io.github.march_plugin.configuration.dto.rules.ScopeStrategyDto;
 import io.github.march_plugin.configuration.dto.rules.ValidationScopeDto;
 import io.github.march_plugin.core.config.dimensions.model.Dimension;
@@ -21,7 +20,6 @@ import org.junit.jupiter.params.provider.EnumSource;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -57,42 +55,42 @@ class RuleRegistryInitializerTest {
 
     @Test
     void shouldMapDefaultDenyStrategy() {
-        final var registry = initializer.build(new RulesDto(List.of(), configOf(RuleStrategyDto.DEFAULT_DENY)));
+        final var registry = initializer.build(List.of(), configOf(RuleStrategyDto.DEFAULT_DENY));
 
         assertThat(registry.getRuleStrategy()).isEqualTo(RuleStrategy.DEFAULT_DENY);
     }
 
     @Test
     void shouldMapDefaultAllowStrategy() {
-        final var registry = initializer.build(new RulesDto(List.of(), configOf(RuleStrategyDto.DEFAULT_ALLOW)));
+        final var registry = initializer.build(List.of(), configOf(RuleStrategyDto.DEFAULT_ALLOW));
 
         assertThat(registry.getRuleStrategy()).isEqualTo(RuleStrategy.DEFAULT_ALLOW);
     }
 
     @Test
-    void shouldDefaultToAutomaticScopeStrategyWhenNotConfigured() {
-        final var registry = initializer.build(new RulesDto(List.of(), configOf(RuleStrategyDto.DEFAULT_DENY)));
+    void shouldDefaultToManualScopeStrategyWhenNotConfigured() {
+        final var registry = initializer.build(List.of(), configOf(RuleStrategyDto.DEFAULT_DENY));
 
-        assertThat(registry.getScopeStrategy()).isEqualTo(ScopeStrategy.AUTOMATIC);
+        assertThat(registry.getScopeStrategy()).isEqualTo(ScopeStrategy.MANUAL);
     }
 
     @Test
     void shouldMapAutomaticScopeStrategy() {
-        final var registry = initializer.build(new RulesDto(List.of(), configOf(RuleStrategyDto.DEFAULT_DENY, ScopeStrategyDto.AUTOMATIC)));
+        final var registry = initializer.build(List.of(), configOf(RuleStrategyDto.DEFAULT_DENY, ScopeStrategyDto.AUTOMATIC));
 
         assertThat(registry.getScopeStrategy()).isEqualTo(ScopeStrategy.AUTOMATIC);
     }
 
     @Test
     void shouldMapManualScopeStrategy() {
-        final var registry = initializer.build(new RulesDto(List.of(), configOf(RuleStrategyDto.DEFAULT_DENY, ScopeStrategyDto.MANUAL)));
+        final var registry = initializer.build(List.of(), configOf(RuleStrategyDto.DEFAULT_DENY, ScopeStrategyDto.MANUAL));
 
         assertThat(registry.getScopeStrategy()).isEqualTo(ScopeStrategy.MANUAL);
     }
 
     @Test
     void shouldReturnEmptyRegistryWhenNoRulesGiven() {
-        final var registry = initializer.build(new RulesDto(List.of(), configOf(RuleStrategyDto.DEFAULT_DENY)));
+        final var registry = initializer.build(List.of(), configOf(RuleStrategyDto.DEFAULT_DENY));
 
         assertThat(registry.getRules()).isEmpty();
     }
@@ -102,11 +100,9 @@ class RuleRegistryInitializerTest {
         final var ast = sampleAst();
         when(compiler.compile("source.layer == layer.service")).thenReturn(ast);
 
-        final var rulesDto = new RulesDto(
-                List.of(ruleDto("must be service", "source.layer == layer.service", null)),
-                configOf(RuleStrategyDto.DEFAULT_DENY));
+        final var rules = List.of(ruleDto("must be service", "source.layer == layer.service", null));
 
-        final var registry = initializer.build(rulesDto);
+        final var registry = initializer.build(rules, configOf(RuleStrategyDto.DEFAULT_DENY));
 
         assertThat(registry.getRules()).hasSize(1);
         final var rule = registry.getRules().getFirst();
@@ -118,8 +114,8 @@ class RuleRegistryInitializerTest {
     void shouldDefaultToGlobalScopeWhenScopeIsNull() {
         when(compiler.compile(any())).thenReturn(sampleAst());
 
-        final var rulesDto = new RulesDto(List.of(ruleDto("desc", "def", null)), configOf(RuleStrategyDto.DEFAULT_DENY));
-        final var registry = initializer.build(rulesDto);
+        final var rules = List.of(ruleDto("desc", "def", null));
+        final var registry = initializer.build(rules, configOf(RuleStrategyDto.DEFAULT_DENY));
 
         assertThat(registry.getRules().getFirst().ruleScope()).isEqualTo(Rule.RuleScope.GLOBAL);
     }
@@ -129,8 +125,8 @@ class RuleRegistryInitializerTest {
     void shouldMapEveryScopeToMatchingRuleScope(final ValidationScopeDto scopeDto) {
         when(compiler.compile(any())).thenReturn(sampleAst());
 
-        final var rulesDto = new RulesDto(List.of(ruleDto("desc", "def", scopeDto)), configOf(RuleStrategyDto.DEFAULT_DENY));
-        final var registry = initializer.build(rulesDto);
+        final var rules = List.of(ruleDto("desc", "def", scopeDto));
+        final var registry = initializer.build(rules, configOf(RuleStrategyDto.DEFAULT_DENY));
 
         assertThat(registry.getRules().getFirst().ruleScope()).isEqualTo(scopeDto.toRuleScope());
     }
@@ -140,36 +136,32 @@ class RuleRegistryInitializerTest {
         when(compiler.compile("d1")).thenReturn(sampleAst());
         when(compiler.compile("d2")).thenReturn(sampleAst());
 
-        final var rulesDto = new RulesDto(
-                List.of(ruleDto("first", "d1", null), ruleDto("second", "d2", null)),
-                configOf(RuleStrategyDto.DEFAULT_ALLOW));
+        final var rules = List.of(ruleDto("first", "d1", null), ruleDto("second", "d2", null));
 
-        final var registry = initializer.build(rulesDto);
+        final var registry = initializer.build(rules, configOf(RuleStrategyDto.DEFAULT_ALLOW));
 
         assertThat(registry.getRules()).extracting(Rule::description).containsExactly("first", "second");
     }
 
     @Test
-    void shouldThrowWhenRulesListIsNull() {
-        final var rulesDto = new RulesDto(null, configOf(RuleStrategyDto.DEFAULT_DENY));
+    void shouldReturnEmptyRegistryWhenRulesListIsNull() {
+        final var registry = initializer.build(null, configOf(RuleStrategyDto.DEFAULT_DENY));
 
-        assertThatThrownBy(() -> initializer.build(rulesDto))
-                .isInstanceOf(NullPointerException.class);
+        assertThat(registry.getRules()).isEmpty();
     }
 
     @Test
-    void shouldThrowWhenConfigurationIsNull() {
-        final var rulesDto = new RulesDto(List.of(), null);
+    void shouldDefaultToDenyAndManualWhenConfigurationIsNull() {
+        final var registry = initializer.build(List.of(), null);
 
-        assertThatThrownBy(() -> initializer.build(rulesDto))
-                .isInstanceOf(NullPointerException.class);
+        assertThat(registry.getRuleStrategy()).isEqualTo(RuleStrategy.DEFAULT_DENY);
+        assertThat(registry.getScopeStrategy()).isEqualTo(ScopeStrategy.MANUAL);
     }
 
     @Test
-    void shouldThrowWhenStrategyIsNull() {
-        final var rulesDto = new RulesDto(List.of(), configOf(null));
+    void shouldDefaultToDenyWhenStrategyIsNull() {
+        final var registry = initializer.build(List.of(), configOf(null));
 
-        assertThatThrownBy(() -> initializer.build(rulesDto))
-                .isInstanceOf(NullPointerException.class);
+        assertThat(registry.getRuleStrategy()).isEqualTo(RuleStrategy.DEFAULT_DENY);
     }
 }
