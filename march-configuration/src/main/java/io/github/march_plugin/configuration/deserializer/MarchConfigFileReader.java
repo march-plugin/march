@@ -1,10 +1,10 @@
 package io.github.march_plugin.configuration.deserializer;
 
+import io.github.march_plugin.configuration.deserializer.exception.ConfigFileNotReadableException;
 import io.github.march_plugin.configuration.dto.MarchConfigDto;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 
 /**
@@ -31,10 +31,8 @@ public class MarchConfigFileReader {
     public MarchConfigDto readConfig() {
         try (FileInputStream fis = new FileInputStream(configFile)) {
             return new XmlMarchLoader().deserializeMarchConfigDto(fis);
-        } catch (final FileNotFoundException e) {
-            throw new RuntimeException(e);
         } catch (final IOException e) {
-            throw new RuntimeException("Failed to load march configuration", e);
+            throw new ConfigFileNotReadableException(configFile, e);
         }
     }
 }

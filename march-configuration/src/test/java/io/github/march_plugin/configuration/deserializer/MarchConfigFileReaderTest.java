@@ -1,5 +1,6 @@
 package io.github.march_plugin.configuration.deserializer;
 
+import io.github.march_plugin.configuration.deserializer.exception.ConfigFileNotReadableException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -29,10 +30,19 @@ class MarchConfigFileReaderTest {
     }
 
     @Test
-    void shouldThrowRuntimeExceptionWhenFileDoesNotExist() {
+    void shouldThrowConfigFileNotReadableExceptionWhenFileDoesNotExist() {
         final var missingFile = new File(tempDir.toFile(), "does-not-exist.xml");
 
         assertThatThrownBy(() -> new MarchConfigFileReader(missingFile).readConfig())
-                .isInstanceOf(RuntimeException.class);
+                .isInstanceOf(ConfigFileNotReadableException.class)
+                .hasMessageContaining(missingFile.toString());
+    }
+
+    @Test
+    void shouldThrowConfigFileNotReadableExceptionWhenPathIsADirectory() {
+        final var directoryAsConfigFile = tempDir.toFile();
+
+        assertThatThrownBy(() -> new MarchConfigFileReader(directoryAsConfigFile).readConfig())
+                .isInstanceOf(ConfigFileNotReadableException.class);
     }
 }
