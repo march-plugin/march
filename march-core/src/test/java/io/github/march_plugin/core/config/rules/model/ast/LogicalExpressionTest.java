@@ -2,10 +2,6 @@ package io.github.march_plugin.core.config.rules.model.ast;
 
 import io.github.march_plugin.core.config.dimensions.model.Dimension;
 import io.github.march_plugin.core.config.rules.exceptions.NullComparisonException;
-import io.github.march_plugin.core.config.rules.exceptions.RedundantLogicalOperationException;
-import io.github.march_plugin.core.config.rules.model.ast.ComparisonExpression;
-import io.github.march_plugin.core.config.rules.model.ast.LogicalExpression;
-import io.github.march_plugin.core.config.rules.model.ast.PartitionExpression;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -14,6 +10,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.stream.Stream;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class LogicalExpressionTest {
@@ -51,14 +48,12 @@ class LogicalExpressionTest {
     }
 
     @Test
-    void shouldThrowOnRedundantAnd() {
-        assertThatThrownBy(() -> new LogicalExpression.And(validComparison, validComparison))
-                .isInstanceOf(RedundantLogicalOperationException.class);
+    void shouldAllowConstructingAndWithIdenticalOperands() {
+        assertThat(new LogicalExpression.And(validComparison, validComparison)).isNotNull();
     }
 
     @Test
-    void shouldThrowOnRedundantOr() {
-        assertThatThrownBy(() -> new LogicalExpression.Or(validComparison, validComparison))
-                .isInstanceOf(RedundantLogicalOperationException.class);
+    void shouldAllowConstructingOrWithIdenticalOperands() {
+        assertThat(new LogicalExpression.Or(validComparison, validComparison)).isNotNull();
     }
 }

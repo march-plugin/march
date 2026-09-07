@@ -6,8 +6,8 @@ import io.github.march_plugin.core.config.projectstructure.analysis.PossiblePart
 import io.github.march_plugin.core.config.projectstructure.model.Modularity;
 import io.github.march_plugin.core.config.projectstructure.model.ModuleModularity;
 import io.github.march_plugin.core.config.rules.config.RuleRegistry;
-import io.github.march_plugin.core.config.rules.evaluation.ast.EvaluatedLogicalExpression;
 import io.github.march_plugin.core.config.rules.model.Rule;
+import io.github.march_plugin.core.config.rules.model.ast.LogicalExpression;
 
 import java.util.HashMap;
 import java.util.List;
@@ -44,7 +44,7 @@ public abstract class DependencyPermissionEvaluator {
     /**
      * Reduces every non-module_only rule against source/target, using forced dimension values for what the partial classification leaves unresolved.
      */
-    protected List<EvaluatedLogicalExpression> evaluateRules(final RuleRegistry ruleRegistry, final DimensionRegistry dimensionRegistry, final Set<Dimension.Partition> source, final Set<Dimension.Partition> target) {
+    protected List<LogicalExpression> evaluateRules(final RuleRegistry ruleRegistry, final DimensionRegistry dimensionRegistry, final Set<Dimension.Partition> source, final Set<Dimension.Partition> target) {
         final var reducer = new RuleReducer();
         final var sourceForcedValues = getForcedDimensionValues(dimensionRegistry, source);
         final var targetForcedValues = getForcedDimensionValues(dimensionRegistry, target);

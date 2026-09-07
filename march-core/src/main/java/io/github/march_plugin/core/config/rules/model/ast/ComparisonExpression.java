@@ -5,7 +5,6 @@ import io.github.march_plugin.core.config.rules.exceptions.ConstantComparisonExc
 import io.github.march_plugin.core.config.rules.exceptions.DimensionMismatchException;
 import io.github.march_plugin.core.config.rules.exceptions.DuplicatePartitionException;
 import io.github.march_plugin.core.config.rules.exceptions.NullComparisonException;
-import io.github.march_plugin.core.config.rules.exceptions.RedundantComparisonException;
 
 import java.util.HashSet;
 import java.util.List;
@@ -105,6 +104,19 @@ public sealed interface ComparisonExpression {
                     partitions
             );
         }
+
+        @Override
+        public boolean equals(final Object obj) {
+            if (obj instanceof In other) {
+                return left.equals(other.left) && new HashSet<>(rights).equals(new HashSet<>(other.rights));
+            }
+            return false;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(left, new HashSet<>(rights));
+        }
     }
 
     /**
@@ -117,10 +129,6 @@ public sealed interface ComparisonExpression {
 
         if (!(left instanceof PartitionExpression.Relative) && !(right instanceof PartitionExpression.Relative)) {
             throw new ConstantComparisonException();
-        }
-
-        if (Objects.equals(left, right)) {
-            throw new RedundantComparisonException(left + " == " + right);
         }
 
         final var lDim = getDim(left);
