@@ -7,12 +7,14 @@ package io.github.march_plugin.core.enforcement.dependencies;
  * @param forbidInlineVersion dependencies must not define an inline version
  * @param forbidInlineScope dependencies must not define an inline scope
  * @param forbidExclusions dependencies must not define exclusions
+ * @param requireVersionProperty every declared version must be a property reference ({@code ${...}}), not a literal
  */
 public record StaticEnforcementConfig(
         boolean requireManagedVersion,
         boolean forbidInlineVersion,
         boolean forbidInlineScope,
-        boolean forbidExclusions
+        boolean forbidExclusions,
+        boolean requireVersionProperty
 ) {
 
     /**
@@ -21,6 +23,6 @@ public record StaticEnforcementConfig(
      * @return the default configuration
      */
     public static StaticEnforcementConfig defaults() {
-        return new StaticEnforcementConfig(true, true, true, false);
+        return new StaticEnforcementConfig(true, true, true, false, true);
     }
 }

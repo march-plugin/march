@@ -4,6 +4,7 @@ public record StaticEnforcementDto(
         Boolean requireManagedVersion,
         Boolean forbidInlineVersion,
         Boolean forbidInlineScope,
-        Boolean forbidExclusions
+        Boolean forbidExclusions,
+        Boolean requireVersionProperty
 ) {
 }
