@@ -196,8 +196,8 @@ By default a rule is checked against **both** the Maven module graph and the com
 `<scope>module_only</scope>` or `<scope>package_only</scope>` restricts a rule to just one of the two.
 
 `<scopeStrategy>` controls if package rules affect module scope:
-- **`AUTOMATIC`** (default): If any cross-module package dependency is allowed, then the module dependency is automatically allowed too.
-- **`MANUAL`**: If a cross-module package dependency is needed, users must manually define a rule allowing the module dependency, mostly with `module_only` scope.
+- **`MANUAL`** (default): If a cross-module package dependency is needed, users must manually define a rule allowing the module dependency, mostly with `module_only` scope.
+- **`AUTOMATIC`**: If any cross-module package dependency is allowed, then the module dependency is automatically allowed too.
 
 Each `<rule>` has a `<definition>`: a boolean expression evaluated for every candidate
 dependency, where `source` is the dependent side and `target` is the thing being depended on.
