@@ -25,7 +25,8 @@ public class StaticEnforcementConfigInitializer {
                 dto.requireManagedVersion() == null ? defaults.requireManagedVersion() : dto.requireManagedVersion(),
                 dto.forbidInlineVersion() == null ? defaults.forbidInlineVersion() : dto.forbidInlineVersion(),
                 dto.forbidInlineScope() == null ? defaults.forbidInlineScope() : dto.forbidInlineScope(),
-                dto.forbidExclusions() == null ? defaults.forbidExclusions() : dto.forbidExclusions()
+                dto.forbidExclusions() == null ? defaults.forbidExclusions() : dto.forbidExclusions(),
+                dto.requireVersionProperty() == null ? defaults.requireVersionProperty() : dto.requireVersionProperty()
         );
     }
 }

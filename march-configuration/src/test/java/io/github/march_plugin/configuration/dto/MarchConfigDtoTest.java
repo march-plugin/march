@@ -53,7 +53,7 @@ class MarchConfigDtoTest {
 
     @Test
     void shouldReturnStaticEnforcementWhenSettingsPresent() {
-        final var staticEnforcement = new StaticEnforcementDto(true, true, true, true);
+        final var staticEnforcement = new StaticEnforcementDto(true, true, true, true, true);
         final var config = configOf(new SettingsDto(null, staticEnforcement), null);
 
         assertThat(config.staticEnforcement()).isEqualTo(staticEnforcement);

@@ -17,11 +17,12 @@ class StaticEnforcementConfigInitializerTest {
         assertThat(config.forbidInlineVersion()).isTrue();
         assertThat(config.forbidInlineScope()).isTrue();
         assertThat(config.forbidExclusions()).isFalse();
+        assertThat(config.requireVersionProperty()).isTrue();
     }
 
     @Test
     void shouldUseDefaultsForFieldsLeftUnset() {
-        final var dto = new StaticEnforcementDto(null, null, null, null);
+        final var dto = new StaticEnforcementDto(null, null, null, null, null);
 
         final var config = initializer.build(dto);
 
@@ -29,11 +30,12 @@ class StaticEnforcementConfigInitializerTest {
         assertThat(config.forbidInlineVersion()).isTrue();
         assertThat(config.forbidInlineScope()).isTrue();
         assertThat(config.forbidExclusions()).isFalse();
+        assertThat(config.requireVersionProperty()).isTrue();
     }
 
     @Test
     void shouldOverrideDefaultsWithExplicitValues() {
-        final var dto = new StaticEnforcementDto(false, false, false, true);
+        final var dto = new StaticEnforcementDto(false, false, false, true, false);
 
         final var config = initializer.build(dto);
 
@@ -41,11 +43,12 @@ class StaticEnforcementConfigInitializerTest {
         assertThat(config.forbidInlineVersion()).isFalse();
         assertThat(config.forbidInlineScope()).isFalse();
         assertThat(config.forbidExclusions()).isTrue();
+        assertThat(config.requireVersionProperty()).isFalse();
     }
 
     @Test
     void shouldOverrideOnlyTheFieldsExplicitlySet() {
-        final var dto = new StaticEnforcementDto(false, null, null, true);
+        final var dto = new StaticEnforcementDto(false, null, null, true, null);
 
         final var config = initializer.build(dto);
 
@@ -53,5 +56,6 @@ class StaticEnforcementConfigInitializerTest {
         assertThat(config.forbidInlineVersion()).isTrue();
         assertThat(config.forbidInlineScope()).isTrue();
         assertThat(config.forbidExclusions()).isTrue();
+        assertThat(config.requireVersionProperty()).isTrue();
     }
 }

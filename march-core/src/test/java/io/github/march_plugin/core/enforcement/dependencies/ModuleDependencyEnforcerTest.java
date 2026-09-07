@@ -8,6 +8,7 @@ import io.github.march_plugin.core.config.classification.model.ModuleCoordinates
 import io.github.march_plugin.core.enforcement.dependencies.exception.ForbiddenExclusionException;
 import io.github.march_plugin.core.enforcement.dependencies.exception.ForbiddenInlineScopeException;
 import io.github.march_plugin.core.enforcement.dependencies.exception.ForbiddenInlineVersionException;
+import io.github.march_plugin.core.enforcement.dependencies.exception.HardcodedVersionException;
 import io.github.march_plugin.core.enforcement.dependencies.exception.VersionNotDefinedException;
 import io.github.march_plugin.core.project.ProjectModuleRegistry;
 import org.junit.jupiter.api.Test;
@@ -68,7 +69,7 @@ class ModuleDependencyEnforcerTest {
         final var source = coords("io.example", "app");
         final var target = coords("io.example", "lib");
         final var dependency = rawDependency(target, null, null, Set.of());
-        final var managedDependency = rawDependency(target, "1.0.0", null, Set.of());
+        final var managedDependency = rawDependency(target, "${lib.version}", null, Set.of());
 
         final var projectModuleRegistry = registryWith(source, List.of(dependency), List.of(managedDependency));
         final var classificationRegistry = classificationRegistryKnowing(source, target);
@@ -133,7 +134,7 @@ class ModuleDependencyEnforcerTest {
     @Test
     void shouldThrowWhenDependencyDefinesExclusionAndForbidExclusionsEnabled() {
         final var enforcerForbiddingExclusions = new ModuleDependencyEnforcer(
-                new StaticEnforcementConfig(true, true, true, true));
+                new StaticEnforcementConfig(true, true, true, true, true));
         final var source = coords("io.example", "app");
         final var target = coords("io.example", "lib");
         final var excluded = coords("io.example", "transitive");
@@ -147,9 +148,65 @@ class ModuleDependencyEnforcerTest {
     }
 
     @Test
+    void shouldThrowWhenManagedDependencyHasHardcodedVersion() {
+        final var source = coords("io.example", "app");
+        final var target = coords("io.example", "lib");
+        final var managedDependency = rawDependency(target, "1.0.0", null, Set.of());
+
+        final var projectModuleRegistry = registryWith(source, List.of(), List.of(managedDependency));
+        final var classificationRegistry = classificationRegistryKnowing(source);
+
+        assertThatThrownBy(() -> enforcer.validateDependencyDefinitions(projectModuleRegistry, classificationRegistry))
+                .isInstanceOf(HardcodedVersionException.class);
+    }
+
+    @Test
+    void shouldThrowWhenVersionMixesLiteralAndProperty() {
+        final var source = coords("io.example", "app");
+        final var target = coords("io.example", "lib");
+        final var managedDependency = rawDependency(target, "1.0.${patch}", null, Set.of());
+
+        final var projectModuleRegistry = registryWith(source, List.of(), List.of(managedDependency));
+        final var classificationRegistry = classificationRegistryKnowing(source);
+
+        assertThatThrownBy(() -> enforcer.validateDependencyDefinitions(projectModuleRegistry, classificationRegistry))
+                .isInstanceOf(HardcodedVersionException.class);
+    }
+
+    @Test
+    void shouldPassWhenManagedDependencyHasHardcodedVersionAndRequireVersionPropertyDisabled() {
+        final var enforcerNotRequiringVersionProperty = new ModuleDependencyEnforcer(
+                new StaticEnforcementConfig(true, true, true, false, false));
+        final var source = coords("io.example", "app");
+        final var target = coords("io.example", "lib");
+        final var managedDependency = rawDependency(target, "1.0.0", null, Set.of());
+
+        final var projectModuleRegistry = registryWith(source, List.of(), List.of(managedDependency));
+        final var classificationRegistry = classificationRegistryKnowing(source);
+
+        assertThatCode(() -> enforcerNotRequiringVersionProperty.validateDependencyDefinitions(projectModuleRegistry, classificationRegistry))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void shouldThrowWhenInlineDependencyHasHardcodedVersionAndForbidInlineVersionDisabled() {
+        final var enforcerAllowingInlineVersion = new ModuleDependencyEnforcer(
+                new StaticEnforcementConfig(true, false, true, false, true));
+        final var source = coords("io.example", "app");
+        final var target = coords("io.example", "lib");
+        final var dependency = rawDependency(target, "1.0.0", null, Set.of());
+
+        final var projectModuleRegistry = registryWith(source, List.of(dependency), List.of());
+        final var classificationRegistry = classificationRegistryKnowing(source, target);
+
+        assertThatThrownBy(() -> enforcerAllowingInlineVersion.validateDependencyDefinitions(projectModuleRegistry, classificationRegistry))
+                .isInstanceOf(HardcodedVersionException.class);
+    }
+
+    @Test
     void shouldPassWhenManagedDependencyHasNoVersionAndRequireManagedVersionDisabled() {
         final var enforcerNotRequiringVersion = new ModuleDependencyEnforcer(
-                new StaticEnforcementConfig(false, true, true, false));
+                new StaticEnforcementConfig(false, true, true, false, true));
         final var source = coords("io.example", "app");
         final var target = coords("io.example", "lib");
         final var managedDependency = rawDependency(target, null, null, Set.of());
@@ -164,7 +221,7 @@ class ModuleDependencyEnforcerTest {
     @Test
     void shouldPassWhenDependencyDefinesInlineVersionAndForbidInlineVersionDisabled() {
         final var enforcerAllowingInlineVersion = new ModuleDependencyEnforcer(
-                new StaticEnforcementConfig(true, false, true, false));
+                new StaticEnforcementConfig(true, false, true, false, false));
         final var source = coords("io.example", "app");
         final var target = coords("io.example", "lib");
         final var dependency = rawDependency(target, "1.0.0", null, Set.of());
@@ -179,7 +236,7 @@ class ModuleDependencyEnforcerTest {
     @Test
     void shouldPassWhenDependencyDefinesInlineScopeAndForbidInlineScopeDisabled() {
         final var enforcerAllowingInlineScope = new ModuleDependencyEnforcer(
-                new StaticEnforcementConfig(true, true, false, false));
+                new StaticEnforcementConfig(true, true, false, false, true));
         final var source = coords("io.example", "app");
         final var target = coords("io.example", "lib");
         final var dependency = rawDependency(target, null, "test", Set.of());
