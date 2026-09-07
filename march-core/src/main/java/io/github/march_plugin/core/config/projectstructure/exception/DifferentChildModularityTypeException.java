@@ -11,6 +11,6 @@ public class DifferentChildModularityTypeException extends MarchViolationExcepti
      * Constructs the exception.
      */
     public DifferentChildModularityTypeException() {
-        super("Module Modularity can only contain children of either type package modularity or package modularity");
+        super("Module Modularity can only contain children of either type module modularity or package modularity");
     }
 }

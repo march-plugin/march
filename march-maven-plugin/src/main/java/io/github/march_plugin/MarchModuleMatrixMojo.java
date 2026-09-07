@@ -191,7 +191,7 @@ public class MarchModuleMatrixMojo extends AbstractMojo {
             for (final var source : sourceModules) {
                 row.append("|");
                 if (source == target) {
-                    row.append(center("", idWidth));
+                    row.append(ConsoleTableFormat.center("", idWidth));
                     continue;
                 }
 
@@ -201,7 +201,7 @@ public class MarchModuleMatrixMojo extends AbstractMojo {
 
                 if (matchingRules.isEmpty()) {
                     final var allowedByDefault = ruleStrategy == RuleStrategy.DEFAULT_ALLOW;
-                    row.append(center(allowedByDefault ? OK_MARKER : "", idWidth));
+                    row.append(ConsoleTableFormat.center(allowedByDefault ? OK_MARKER : "", idWidth));
                 } else if (showRules) {
                     if (!isFallbackOnly) {
                         directlyMatchedRules.addAll(matchingRules);
@@ -212,10 +212,10 @@ public class MarchModuleMatrixMojo extends AbstractMojo {
                             .map(letter -> isFallbackOnly ? Character.toLowerCase(letter) : letter)
                             .map(Object::toString)
                             .collect(Collectors.joining());
-                    row.append(center(letters, idWidth));
+                    row.append(ConsoleTableFormat.center(letters, idWidth));
                 } else {
                     final var forbiddenByRule = ruleStrategy == RuleStrategy.DEFAULT_ALLOW;
-                    row.append(center(forbiddenByRule ? "" : OK_MARKER, idWidth));
+                    row.append(ConsoleTableFormat.center(forbiddenByRule ? "" : OK_MARKER, idWidth));
                 }
             }
             row.append("| ").append(label);
@@ -244,7 +244,7 @@ public class MarchModuleMatrixMojo extends AbstractMojo {
 
     private static String rowLabel(final int id, final ClassifiedModule module, final int idWidth) {
         final var artifactId = module.getModuleCoordinates().getArtifactId();
-        final var truncated = artifactId.length() > ARTIFACT_ID_WIDTH ? artifactId.substring(0, ARTIFACT_ID_WIDTH) : artifactId;
+        final var truncated = ConsoleTableFormat.truncate(artifactId, ARTIFACT_ID_WIDTH);
         return String.format("%" + idWidth + "d  %-" + ARTIFACT_ID_WIDTH + "s", id, truncated);
     }
 
@@ -269,39 +269,24 @@ public class MarchModuleMatrixMojo extends AbstractMojo {
     private void printHeaderRow(final List<ClassifiedModule> sourceModules, final int idWidth, final int rowLabelWidth, final String left, final String right, final Function<ClassifiedModule, String> cellContent) {
         final var line = new StringBuilder(String.format("%-" + rowLabelWidth + "s", left));
         for (final var source : sourceModules) {
-            line.append(String.format("|%-" + idWidth + "s", truncate(cellContent.apply(source), idWidth)));
+            line.append(String.format("|%-" + idWidth + "s", ConsoleTableFormat.truncate(cellContent.apply(source), idWidth)));
         }
         line.append("|");
         line.append(String.format("%-" + rowLabelWidth + "s", right));
         getLog().info(line.toString());
     }
 
-    static String truncate(final String s, final int len) {
-        return s.length() > len ? s.substring(0, len) : s;
-    }
-
     private void printLine() {
-        getLog().info("-".repeat(fullLineWith));
+        getLog().info(ConsoleTableFormat.line(fullLineWith));
     }
 
     private void printDottedLine() {
-        getLog().info(".".repeat(fullLineWith));
+        getLog().info(ConsoleTableFormat.dottedLine(fullLineWith));
     }
 
     static void validateColumnWidth(final int columnWidth) throws MojoExecutionException {
         if (columnWidth < 1) {
             throw new MojoExecutionException("march.columnWidth must be at least 1");
         }
-    }
-
-    static String center(final String text, final int width) {
-        if (text.length() >= width) {
-            return text.substring(0, width);
-        }
-        final var padding = width - text.length();
-        final var leftPadding = padding / 2;
-        final var rightPadding = padding - leftPadding;
-
-        return " ".repeat(leftPadding) + text + " ".repeat(rightPadding);
     }
 }

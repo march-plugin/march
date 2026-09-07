@@ -162,11 +162,11 @@ public class MarchMatrixMojo extends AbstractMojo {
     private int fullLineWith;
 
     private void printLine() {
-        getLog().info("-".repeat(fullLineWith));
+        getLog().info(ConsoleTableFormat.line(fullLineWith));
     }
 
     private void printDottedLine() {
-        getLog().info(".".repeat(fullLineWith));
+        getLog().info(ConsoleTableFormat.dottedLine(fullLineWith));
     }
 
     private void renderTable(final DimensionRegistry dimensionRegistry, final ModuleModularity projectStructureRoot, final RuleRegistry ruleRegistry, final List<List<Dimension.Partition>> combinations) {
@@ -197,7 +197,7 @@ public class MarchMatrixMojo extends AbstractMojo {
             line.append(String.format("%-" + firstColWidth + "s", (d == depth - 1) ? leftDescription : ""));
 
             for (final var combo : combinations) {
-                line.append(String.format("|%-" + maxPartitionCharCount + "s", truncate(combo.get(d).getName(), maxPartitionCharCount)));
+                line.append(String.format("|%-" + maxPartitionCharCount + "s", ConsoleTableFormat.truncate(combo.get(d).getName(), maxPartitionCharCount)));
             }
             line.append("|");
             line.append(String.format("%-" + firstColWidth + "s", (d == depth - 1) ? " " + rightDescription : ""));
@@ -224,16 +224,16 @@ public class MarchMatrixMojo extends AbstractMojo {
 
         for (final var target : targetToPermissionMap.entrySet()) {
             final var label = target.getKey().stream()
-                    .map(p -> truncate(p.getName(), maxPartitionCharCount))
+                    .map(p -> ConsoleTableFormat.truncate(p.getName(), maxPartitionCharCount))
                     .collect(Collectors.joining("/"));
-            final var row = new StringBuilder(String.format("%-" + firstColWidth + "s", truncate(label, firstColWidth)));
+            final var row = new StringBuilder(String.format("%-" + firstColWidth + "s", ConsoleTableFormat.truncate(label, firstColWidth)));
 
             for (final var source : target.getValue()) {
 
                 if (source instanceof DependencyPermission.Allowed) {
-                    row.append("|").append(center("OK", maxPartitionCharCount));
+                    row.append("|").append(ConsoleTableFormat.center("OK", maxPartitionCharCount));
                 } else if (source instanceof DependencyPermission.Forbidden) {
-                    row.append("|").append(center("", maxPartitionCharCount));
+                    row.append("|").append(ConsoleTableFormat.center("", maxPartitionCharCount));
                 } else if (source instanceof DependencyPermission.PartiallyAllowed partiallyAllowed) {
                     final var ids = new HashSet<Character>();
                     for (final var allowedCase : partiallyAllowed.allowedCases()) {
@@ -251,32 +251,14 @@ public class MarchMatrixMojo extends AbstractMojo {
                             .limit(maxPartitionCharCount)
                             .map(Object::toString)
                             .collect(Collectors.joining(""));
-                    row.append("|").append(center(idString, maxPartitionCharCount));
+                    row.append("|").append(ConsoleTableFormat.center(idString, maxPartitionCharCount));
                 }
             }
-            row.append("| ").append(String.format("%-" + firstColWidth + "s", truncate(label, firstColWidth)));
+            row.append("| ").append(String.format("%-" + firstColWidth + "s", ConsoleTableFormat.truncate(label, firstColWidth)));
 
             getLog().info(row.toString());
             printDottedLine();
         }
         return partiallyAllowedTrees;
-    }
-
-    static String center(final String text, final int width) {
-        if (text == null || text.length() >= width) {
-            return text.substring(0, Math.min(text.length(), width));
-        }
-        final var padding = width - text.length();
-        final var leftPadding = padding / 2;
-        final var rightPadding = padding - leftPadding;
-
-        return " ".repeat(leftPadding) + text + " ".repeat(rightPadding);
-    }
-
-    static String truncate(final String s, final int len) {
-        if (s == null) {
-            return "";
-        }
-        return s.length() > len ? s.substring(0, len) : s;
     }
 }
