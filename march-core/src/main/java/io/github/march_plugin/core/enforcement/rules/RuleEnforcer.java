@@ -7,8 +7,6 @@ import io.github.march_plugin.core.config.classification.model.PackageClassifica
 import io.github.march_plugin.core.config.rules.config.RuleRegistry;
 import io.github.march_plugin.core.config.rules.config.ScopeStrategy;
 import io.github.march_plugin.core.config.rules.evaluation.RuleEvaluator;
-import io.github.march_plugin.core.config.rules.evaluation.RuleReducer;
-import io.github.march_plugin.core.config.rules.model.ast.LogicalExpression;
 import io.github.march_plugin.core.enforcement.dependencies.ForbiddenDependency;
 import io.github.march_plugin.core.enforcement.dependencies.PackageDependencyEvaluator;
 import io.github.march_plugin.core.project.MavenDependency;
@@ -17,7 +15,6 @@ import io.github.march_plugin.core.project.ProjectModuleRegistry;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Enforces the configured rules on all modules and packages.
@@ -27,7 +24,6 @@ public abstract class RuleEnforcer {
     private final PackageDependencyEvaluator packageDependencyEvaluator;
     private final ScopeStrategy scopeStrategy;
     private final RuleEvaluator ruleEvaluator = new RuleEvaluator();
-    private final RuleReducer ruleReducer = new RuleReducer();
 
     /**
      * Constructs the RuleEnforcer.
@@ -57,12 +53,10 @@ public abstract class RuleEnforcer {
      * @return whether the rule matches at module level
      */
     protected boolean matchesAtModuleLevel(final Rule rule, final Classification source, final Classification target) {
-        return switch (scopeStrategy) {
-            case AUTOMATIC -> ruleReducer.reduce(rule.definition(), source.getPartitions(), target.getPartitions(), Map.of(), Map.of())
-                    instanceof LogicalExpression.AlwaysTrue;
-            case MANUAL -> !rule.ruleScope().equals(Rule.RuleScope.PACKAGE_ONLY)
-                    && ruleEvaluator.evaluate(rule.definition(), source, target);
-        };
+        if (scopeStrategy == ScopeStrategy.MANUAL && rule.ruleScope().equals(Rule.RuleScope.PACKAGE_ONLY)) {
+            return false;
+        }
+        return ruleEvaluator.evaluate(rule.definition(), source, target);
     }
 
     /**
