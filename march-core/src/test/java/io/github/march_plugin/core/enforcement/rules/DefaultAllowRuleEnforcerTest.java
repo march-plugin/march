@@ -201,14 +201,14 @@ class DefaultAllowRuleEnforcerTest {
         }
 
         @Test
-        void enforceMavenMatchesRuleReferencingMissingDimension() {
+        void enforceMavenCorrectlyHandlesMissingDimension() {
             final var realEnforcer = new DefaultAllowRuleEnforcer(packageDependencyEvaluator, ScopeStrategy.MANUAL);
             final var source = mockClassification(domainA);
             final var target = mockClassification(domainA);
             final var mavenDependency = new MavenDependency(source, target, "test-artifact");
             final var rule = new Rule("Forbid non-business (misscoped)", notBusinessLayerRule, Rule.RuleScope.MODULE_ONLY);
 
-            assertThrows(DependencyForbiddenException.class, () ->
+            assertDoesNotThrow(() ->
                     invokeEnforceRules(realEnforcer, Set.of(mavenDependency), List.of(), List.of(rule)));
         }
     }

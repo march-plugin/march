@@ -105,6 +105,17 @@ class RuleEvaluatorTest {
         }
 
         @Test
+        void shouldNotFlipAnInExpressionWithMissingDimensionToTrueThroughNot() {
+            final var notIn = new LogicalExpression.Not(new LogicalExpression.ComparisonWrap(
+                    new ComparisonExpression.In(
+                            new PartitionExpression.Relative(PartitionExpression.Relative.Side.SOURCE, layerDim),
+                            List.of(new PartitionExpression.Fixed(servicePart), new PartitionExpression.Fixed(uiPart))
+                    )
+            ));
+            assertThat(EVALUATOR.evaluate(notIn, euClassification, emptyClassification)).isFalse();
+        }
+
+        @Test
         void shouldHandleNullResolutionsGracefully() {
             assertThat(EVALUATOR.evaluate(sourceIsService, euClassification, emptyClassification)).isFalse();
         }
@@ -119,6 +130,64 @@ class RuleEvaluatorTest {
             );
             assertThat(EVALUATOR.evaluate(isNull, euClassification, emptyClassification)).isTrue();
             assertThat(EVALUATOR.evaluate(isNull, serviceClassification, emptyClassification)).isFalse();
+        }
+
+        @Test
+        void shouldNotEvaluateEqualityTrueWhenBothSidesAreUnclassified() {
+            final var bothSidesRegion = new LogicalExpression.ComparisonWrap(
+                    new ComparisonExpression.Equal(
+                            new PartitionExpression.Relative(PartitionExpression.Relative.Side.SOURCE, regionDim),
+                            new PartitionExpression.Relative(PartitionExpression.Relative.Side.TARGET, regionDim)
+                    )
+            );
+            assertThat(EVALUATOR.evaluate(bothSidesRegion, serviceClassification, uiClassification)).isFalse();
+        }
+
+        @Test
+        void shouldEvaluateEqualityTrueOnlyWhenBothSidesActuallyMatch() {
+            final var bothSidesLayer = new LogicalExpression.ComparisonWrap(
+                    new ComparisonExpression.Equal(
+                            new PartitionExpression.Relative(PartitionExpression.Relative.Side.SOURCE, layerDim),
+                            new PartitionExpression.Relative(PartitionExpression.Relative.Side.TARGET, layerDim)
+                    )
+            );
+            assertThat(EVALUATOR.evaluate(bothSidesLayer, serviceClassification, serviceClassification)).isTrue();
+            assertThat(EVALUATOR.evaluate(bothSidesLayer, serviceClassification, uiClassification)).isFalse();
+        }
+
+        @Test
+        void shouldNotEvaluateInequalityTrueWhenOnlyOneSideIsUnclassified() {
+            final var layerNotEqual = new LogicalExpression.ComparisonWrap(
+                    new ComparisonExpression.NotEqual(
+                            new PartitionExpression.Relative(PartitionExpression.Relative.Side.SOURCE, layerDim),
+                            new PartitionExpression.Relative(PartitionExpression.Relative.Side.TARGET, layerDim)
+                    )
+            );
+            assertThat(EVALUATOR.evaluate(layerNotEqual, serviceClassification, emptyClassification)).isFalse();
+        }
+
+        @Test
+        void shouldEvaluateInequalityTrueOnlyWhenBothSidesActuallyDiffer() {
+            final var layerNotEqual = new LogicalExpression.ComparisonWrap(
+                    new ComparisonExpression.NotEqual(
+                            new PartitionExpression.Relative(PartitionExpression.Relative.Side.SOURCE, layerDim),
+                            new PartitionExpression.Relative(PartitionExpression.Relative.Side.TARGET, layerDim)
+                    )
+            );
+            assertThat(EVALUATOR.evaluate(layerNotEqual, serviceClassification, uiClassification)).isTrue();
+            assertThat(EVALUATOR.evaluate(layerNotEqual, serviceClassification, serviceClassification)).isFalse();
+        }
+
+        @Test
+        void shouldStillEvaluateExplicitNullLiteralInequalityWithoutRequiringBothSides() {
+            final var isNotNull = new LogicalExpression.ComparisonWrap(
+                    new ComparisonExpression.NotEqual(
+                            new PartitionExpression.Relative(PartitionExpression.Relative.Side.SOURCE, layerDim),
+                            new PartitionExpression.Null()
+                    )
+            );
+            assertThat(EVALUATOR.evaluate(isNotNull, serviceClassification, emptyClassification)).isTrue();
+            assertThat(EVALUATOR.evaluate(isNotNull, euClassification, emptyClassification)).isFalse();
         }
     }
 
@@ -153,7 +222,14 @@ class RuleEvaluatorTest {
                     new LogicalExpression.And(sourceIsService, targetIsUI)
             );
             assertThat(EVALUATOR.evaluate(complex, serviceClassification, uiClassification)).isFalse();
-            assertThat(EVALUATOR.evaluate(complex, serviceClassification, emptyClassification)).isTrue();
+        }
+
+        @Test
+        void shouldNotFlipAnUnresolvedComparisonToTrueThroughNot() {
+            final var complex = new LogicalExpression.Not(
+                    new LogicalExpression.And(sourceIsService, targetIsUI)
+            );
+            assertThat(EVALUATOR.evaluate(complex, serviceClassification, emptyClassification)).isFalse();
         }
     }
 
