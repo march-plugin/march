@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Finds every classification that may exist defined by the project structure (=modularity tree).
@@ -32,16 +33,34 @@ final class ModuleCombinationFinder {
     private static void collect(final Modularity node, final Map<Dimension, Dimension.Partition> pathSoFar, final List<Map<Dimension, Dimension.Partition>> result) {
         result.add(pathSoFar);
 
-        for (final var child : node.getChildren()) {
-            if (child.getCasePartitions() == null) {
-                collect(child, pathSoFar, result);
+        if (node.getDimension() == null) {
+            return;
+        }
+
+        for (final var partition : ownPartitions(node)) {
+            final var classifiedPath = withPartition(pathSoFar, node.getDimension(), partition);
+            final var matchingChildren = node.getChildren().stream()
+                    .filter(child -> child.getCasePartitions() == null || child.getCasePartitions().contains(partition))
+                    .toList();
+
+            if (matchingChildren.isEmpty()) {
+                result.add(classifiedPath);
             } else {
-                for (final var partition : child.getCasePartitions().getPartitions()) {
-                    final var branchPath = new HashMap<>(pathSoFar);
-                    branchPath.put(partition.getDimension(), partition);
-                    collect(child, branchPath, result);
+                for (final var child : matchingChildren) {
+                    collect(child, classifiedPath, result);
                 }
             }
         }
+    }
+
+    private static Map<Dimension, Dimension.Partition> withPartition(final Map<Dimension, Dimension.Partition> pathSoFar, final Dimension dimension, final Dimension.Partition partition) {
+        final var branchPath = new HashMap<>(pathSoFar);
+        branchPath.put(dimension, partition);
+        return branchPath;
+    }
+
+    private static Set<Dimension.Partition> ownPartitions(final Modularity node) {
+        final var allowedPartitions = node.getAllowedPartitions();
+        return allowedPartitions != null ? allowedPartitions.getPartitions() : node.getDimension().getPartitions();
     }
 }
