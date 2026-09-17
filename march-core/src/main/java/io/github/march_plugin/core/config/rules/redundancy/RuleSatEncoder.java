@@ -77,6 +77,17 @@ final class RuleSatEncoder {
         return assumptions;
     }
 
+    /**
+     * Gets the literal to assume for testing whether {@code rule} could ever fire on its own, regardless of
+     * every other rule.
+     *
+     * @param rule the rule to assume {@code TRUE}
+     * @return {@code rule}'s literal, as a single-element assumption array
+     */
+    public int[] assumptionsForReachability(final Rule rule) {
+        return new int[]{trueLiteral(rule)};
+    }
+
     private int trueLiteral(final Rule rule) {
         return ruleTrueLiterals.get(rule);
     }

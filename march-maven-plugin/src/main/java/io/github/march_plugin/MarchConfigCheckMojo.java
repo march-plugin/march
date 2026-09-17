@@ -17,16 +17,17 @@ import org.apache.maven.shared.utils.logging.MessageUtils;
 import java.io.File;
 
 /**
- * Reports rules that are redundant: rules whose removal would not change the outcome for any dependency,
- * because every dependency they permit or forbid is already covered by the other configured rules.
+ * Checks the configured rules for issues that a schema validation cannot catch:
+ * - rules that can never match any real classification
+ * - rules whose removal would not change the outcome for any dependency.
  *
  * <p>Usage:</p>
  * <pre>{@code
- * mvn march:redundancy
+ * mvn march:config-check
  * }</pre>
  */
-@Mojo(name = "redundancy", aggregator = true)
-public class MarchRedundantRulesMojo extends AbstractMojo {
+@Mojo(name = "config-check", aggregator = true)
+public class MarchConfigCheckMojo extends AbstractMojo {
 
     @Parameter(defaultValue = "${project}", readonly = true)
     private MavenProject project;
@@ -49,19 +50,32 @@ public class MarchRedundantRulesMojo extends AbstractMojo {
             final var ruleRegistry = new RuleRegistryInitializer(new RuleDefinitionCompiler(dimensionRegistry)).build(marchConfigDto.rules(), marchConfigDto.ruleEngine());
             final var projectStructureRoot = new ProjectStructureInitializer(dimensionRegistry).build(marchConfigDto.projectStructure());
 
-            final var redundantRules = new RuleRedundancyAnalyzer().findRedundantRules(ruleRegistry.getRules(), projectStructureRoot);
+            final var analyzer = new RuleRedundancyAnalyzer();
+            final var allRules = ruleRegistry.getRules();
+            final var unreachableRules = analyzer.findUnreachableRules(allRules, projectStructureRoot);
+            final var rulesToCheck = allRules.stream().filter(rule -> !unreachableRules.contains(rule)).toList();
+            final var redundantRules = analyzer.findRedundantRules(rulesToCheck, projectStructureRoot);
 
             getLog().info("");
-            getLog().info(MessageUtils.buffer().strong("March Redundant Rule Analysis").build());
+            getLog().info(MessageUtils.buffer().strong("March Config Check").build());
 
-            if (redundantRules.isEmpty()) {
-                getLog().info("No redundant rules found.");
+            if (unreachableRules.isEmpty() && redundantRules.isEmpty()) {
+                getLog().info("No redundant or unreachable rules found.");
                 return;
             }
 
-            getLog().info("The following rules never uniquely decide a match and can be removed without changing enforcement:");
-            for (final var rule : redundantRules) {
-                getLog().info("  - " + rule.description());
+            if (!unreachableRules.isEmpty()) {
+                getLog().info("The following rules can never match any real classification and should be corrected or removed:");
+                for (final var rule : unreachableRules) {
+                    getLog().info("  - " + rule.description());
+                }
+            }
+
+            if (!redundantRules.isEmpty()) {
+                getLog().info("The following rules never uniquely decide a match and can be removed without changing enforcement:");
+                for (final var rule : redundantRules) {
+                    getLog().info("  - " + rule.description());
+                }
             }
         } catch (final MarchViolationException e) {
             throw new MojoFailureException(e.getMessage(), e);
