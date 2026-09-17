@@ -329,6 +329,70 @@ class RuleRedundancyAnalyzerTest {
         assertThat(withTree).containsExactlyInAnyOrder(broaderRule, narrowerRule);
     }
 
+    @Test
+    void flagsAContradictoryRuleAsUnreachableEvenWithoutATree() {
+        // target.layer == service AND target.layer == ui can never both hold: a component has exactly
+        // one classification per dimension.
+        final var contradictoryRule = new Rule("contradictory", new LogicalExpression.And(
+                comparisonWrap(new ComparisonExpression.Equal(targetOf(layerDim), new PartitionExpression.Fixed(servicePart))),
+                comparisonWrap(new ComparisonExpression.Equal(targetOf(layerDim), new PartitionExpression.Fixed(uiPart)))
+        ), Rule.RuleScope.GLOBAL);
+
+        final var unreachable = analyzer.findUnreachableRules(List.of(contradictoryRule), null);
+
+        assertThat(unreachable).containsExactly(contradictoryRule);
+    }
+
+    @Test
+    void doesNotFlagAReachableRuleAsUnreachable() {
+        final var ruleA = rule(comparisonWrap(equalTo(servicePart)));
+        final var ruleB = rule(comparisonWrap(equalTo(uiPart)));
+
+        final var unreachable = analyzer.findUnreachableRules(List.of(ruleA, ruleB), null);
+
+        assertThat(unreachable).isEmpty();
+    }
+
+    @Test
+    void flagsAnUnreachableRuleInsteadOfRedundant() {
+        // component/module_type mirror the earlier tree restriction tests: module_type is only ever
+        // classified under component.domain, never under component.util.
+        final var componentBuilder = new Dimension.Builder("component");
+        final var domainPart = componentBuilder.addPartition("domain");
+        final var utilPart = componentBuilder.addPartition("util");
+        final var componentDim = componentBuilder.build();
+
+        final var moduleTypeBuilder = new Dimension.Builder("module_type");
+        final var modelPart = moduleTypeBuilder.addPartition("model");
+        moduleTypeBuilder.addPartition("client");
+        final var moduleTypeDim = moduleTypeBuilder.build();
+
+        final var root = new ModuleModularity.Builder(componentDim, convention()).buildAsRoot();
+        final var domainBranch = new ModuleModularity.Builder(moduleTypeDim, convention())
+                .setCasePartitions(caseOf(domainPart))
+                .buildAsChild(root);
+        new ModuleModularity.Builder(null, convention()).setCasePartitions(caseOf(modelPart)).buildAsChild(domainBranch);
+        new ModuleModularity.Builder(null, convention()).setCasePartitions(caseOf(moduleTypeDim.getPartition("client"))).buildAsChild(domainBranch);
+        new ModuleModularity.Builder(null, convention()).setCasePartitions(caseOf(utilPart)).buildAsChild(root);
+
+        // Impossible: module_type.model can never occur together with component.util, likely a copy-paste
+        // mistake rather than an intentionally strict rule.
+        final var impossibleRule = new Rule("impossible", new LogicalExpression.And(
+                comparisonWrap(new ComparisonExpression.Equal(targetOf(moduleTypeDim), new PartitionExpression.Fixed(modelPart))),
+                comparisonWrap(new ComparisonExpression.Equal(targetOf(componentDim), new PartitionExpression.Fixed(utilPart)))
+        ), Rule.RuleScope.MODULE_ONLY);
+
+        final var unreachable = analyzer.findUnreachableRules(List.of(impossibleRule), root);
+        assertThat(unreachable).containsExactly(impossibleRule);
+
+        // A caller that excludes rules already found unreachable, as findRedundantRules's contract requires,
+        // never sees this rule reported as redundant, even though its own literal is trivially unsatisfiable
+        // and would otherwise make every assumptionsFor() query against it trivially unsatisfiable too.
+        final var rulesToCheck = List.of(impossibleRule).stream().filter(rule -> !unreachable.contains(rule)).toList();
+        final var redundant = analyzer.findRedundantRules(rulesToCheck, root);
+        assertThat(redundant).isEmpty();
+    }
+
     private static ModuleConvention convention() {
         return new ModuleConvention.Builder().setGroupId("com.example").setArtifactId("module").build();
     }

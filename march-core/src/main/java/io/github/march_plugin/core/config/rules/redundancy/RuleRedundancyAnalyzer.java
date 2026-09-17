@@ -18,29 +18,48 @@ import java.util.Set;
 public final class RuleRedundancyAnalyzer {
 
     /**
-     * Analyzes all rules for redundancy.
+     * Analyzes all rules for reachability.
      *
      * @param rules                 the rules to analyze
      * @param projectStructureRoot  the modularity tree root, or {@code null} to leave every classification unrestricted
-     * @return the rules found to be redundant, in their original order
+     * @return the rules found to be unreachable
      */
-    public List<Rule> findRedundantRules(final List<Rule> rules, final ModuleModularity projectStructureRoot) {
+    public List<Rule> findUnreachableRules(final List<Rule> rules, final ModuleModularity projectStructureRoot) {
         final var moduleContext = effectiveRules(rules, Rule.RuleScope.MODULE_ONLY);
         final var packageContext = effectiveRules(rules, Rule.RuleScope.PACKAGE_ONLY);
+
+        final var moduleUnreachable = unreachableWithin(moduleContext, projectStructureRoot);
+        final var packageUnreachable = unreachableWithin(packageContext, projectStructureRoot);
+
+        return rules.stream()
+                .filter(rule -> isInBoth(rule, moduleUnreachable, packageUnreachable))
+                .toList();
+    }
+
+    /**
+     * Analyzes rules for redundancy.
+     *
+     * @param rulesToCheck          the rules to analyze
+     * @param projectStructureRoot  the modularity tree root, or {@code null} to leave every classification unrestricted
+     * @return the rules found to be redundant, in their original order
+     */
+    public List<Rule> findRedundantRules(final List<Rule> rulesToCheck, final ModuleModularity projectStructureRoot) {
+        final var moduleContext = effectiveRules(rulesToCheck, Rule.RuleScope.MODULE_ONLY);
+        final var packageContext = effectiveRules(rulesToCheck, Rule.RuleScope.PACKAGE_ONLY);
 
         final var redundantInModuleContext = redundantWithin(moduleContext, projectStructureRoot);
         final var redundantInPackageContext = redundantWithin(packageContext, projectStructureRoot);
 
-        return rules.stream()
-                .filter(rule -> isRedundant(rule, redundantInModuleContext, redundantInPackageContext))
+        return rulesToCheck.stream()
+                .filter(rule -> isInBoth(rule, redundantInModuleContext, redundantInPackageContext))
                 .toList();
     }
 
-    private boolean isRedundant(final Rule rule, final Set<Rule> redundantInModuleContext, final Set<Rule> redundantInPackageContext) {
+    private boolean isInBoth(final Rule rule, final Set<Rule> inModuleContext, final Set<Rule> inPackageContext) {
         return switch (rule.ruleScope()) {
-            case MODULE_ONLY -> redundantInModuleContext.contains(rule);
-            case PACKAGE_ONLY -> redundantInPackageContext.contains(rule);
-            case GLOBAL -> redundantInModuleContext.contains(rule) && redundantInPackageContext.contains(rule);
+            case MODULE_ONLY -> inModuleContext.contains(rule);
+            case PACKAGE_ONLY -> inPackageContext.contains(rule);
+            case GLOBAL -> inModuleContext.contains(rule) && inPackageContext.contains(rule);
         };
     }
 
@@ -50,25 +69,37 @@ public final class RuleRedundancyAnalyzer {
                 .toList();
     }
 
+    private Set<Rule> unreachableWithin(final List<Rule> rules, final ModuleModularity projectStructureRoot) {
+        final var encoder = new RuleSatEncoder(rules, projectStructureRoot);
+        final var solver = new SatSolverBuilder(encoder.variables()).build();
+
+        final var unreachable = new HashSet<Rule>();
+        for (final var candidate : rules) {
+            if (!isSatisfiable(encoder.assumptionsForReachability(candidate), solver)) {
+                unreachable.add(candidate);
+            }
+        }
+        return unreachable;
+    }
+
     private Set<Rule> redundantWithin(final List<Rule> rules, final ModuleModularity projectStructureRoot) {
         final var encoder = new RuleSatEncoder(rules, projectStructureRoot);
         final var solver = new SatSolverBuilder(encoder.variables()).build();
 
         final var redundant = new HashSet<Rule>();
         for (final var candidate : rules) {
-            final var assumptions = encoder.assumptionsFor(candidate, rules);
-            if (isRedundant(assumptions, solver)) {
+            if (!isSatisfiable(encoder.assumptionsFor(candidate, rules), solver)) {
                 redundant.add(candidate);
             }
         }
         return redundant;
     }
 
-    private boolean isRedundant(final int[] assumptions, final ISolver solver) {
+    private boolean isSatisfiable(final int[] assumptions, final ISolver solver) {
         try {
-            return !solver.isSatisfiable(new VecInt(assumptions));
+            return solver.isSatisfiable(new VecInt(assumptions));
         } catch (final TimeoutException e) {
-            return false;
+            return true;
         }
     }
 
