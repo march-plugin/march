@@ -89,6 +89,27 @@ class RuleRedundancyAnalyzerTest {
     }
 
     @Test
+    void flagsAnAccessRuleMadeRedundantByAnAllowAllRule() {
+        final var layerBuilder = new Dimension.Builder("layer");
+        final var aPart = layerBuilder.addPartition("a");
+        final var bPart = layerBuilder.addPartition("b");
+        final var layer = layerBuilder.build();
+        final var root = new ModuleModularity.Builder(layer, convention()).buildAsRoot();
+
+        // A: source.layer == a AND target.layer == b -- "a may access b"
+        final var accessRule = new Rule("a may access b", new LogicalExpression.And(
+                comparisonWrap(new ComparisonExpression.Equal(sourceOf(layer), new PartitionExpression.Fixed(aPart))),
+                comparisonWrap(new ComparisonExpression.Equal(targetOf(layer), new PartitionExpression.Fixed(bPart)))
+        ), Rule.RuleScope.GLOBAL);
+        // B: matches every classification unconditionally
+        final var allowAllRule = new Rule("allow everything", new LogicalExpression.AlwaysTrue(), Rule.RuleScope.GLOBAL);
+
+        final var redundant = analyzer.findRedundantRules(List.of(accessRule, allowAllRule), root);
+
+        assertThat(redundant).containsExactly(accessRule);
+    }
+
+    @Test
     void aGlobalRuleIsNotFlaggedWhileItAloneCoversTheOtherScopeContext() {
         // A (GLOBAL): source.layer == layer.service -- present in both the module and the package context
         final var globalRule = new Rule("global", comparisonWrap(equalTo(servicePart)), Rule.RuleScope.GLOBAL);
@@ -152,6 +173,38 @@ class RuleRedundancyAnalyzerTest {
 
         // With the tree, module_type.client can never occur outside component.domain, so both rules become
         // interchangeable and both are reported redundant.
+        final var withTree = analyzer.findRedundantRules(List.of(broaderRule, narrowerRule), root);
+        assertThat(withTree).containsExactlyInAnyOrder(broaderRule, narrowerRule);
+    }
+
+    @Test
+    void treeRestrictionMissesSubsumptionHiddenInALeafsOwnDimension() {
+        final var componentBuilder = new Dimension.Builder("component");
+        final var domainPart = componentBuilder.addPartition("domain");
+        final var utilPart = componentBuilder.addPartition("util");
+        final var componentDim = componentBuilder.build();
+
+        final var leafLayerBuilder = new Dimension.Builder("layer");
+        final var xPart = leafLayerBuilder.addPartition("x");
+        leafLayerBuilder.addPartition("y");
+        final var leafLayerDim = leafLayerBuilder.build();
+
+        final var root = new ModuleModularity.Builder(componentDim, convention()).buildAsRoot();
+
+        new ModuleModularity.Builder(leafLayerDim, convention()).setCasePartitions(caseOf(domainPart)).buildAsChild(root);
+        new ModuleModularity.Builder(null, convention()).setCasePartitions(caseOf(utilPart)).buildAsChild(root);
+
+        // A: target.layer == x
+        final var broaderRule = new Rule("broader", comparisonWrap(new ComparisonExpression.Equal(targetOf(leafLayerDim), new PartitionExpression.Fixed(xPart))), Rule.RuleScope.MODULE_ONLY);
+        // B: target.layer == x AND target.component == domain
+        final var narrowerRule = new Rule("narrower", new LogicalExpression.And(
+                comparisonWrap(new ComparisonExpression.Equal(targetOf(leafLayerDim), new PartitionExpression.Fixed(xPart))),
+                comparisonWrap(new ComparisonExpression.Equal(targetOf(componentDim), new PartitionExpression.Fixed(domainPart)))
+        ), Rule.RuleScope.MODULE_ONLY);
+
+        final var withoutTree = analyzer.findRedundantRules(List.of(broaderRule, narrowerRule), null);
+        assertThat(withoutTree).containsExactly(narrowerRule);
+
         final var withTree = analyzer.findRedundantRules(List.of(broaderRule, narrowerRule), root);
         assertThat(withTree).containsExactlyInAnyOrder(broaderRule, narrowerRule);
     }
@@ -290,6 +343,10 @@ class RuleRedundancyAnalyzerTest {
 
     private static PartitionExpression.Relative targetOf(final Dimension dimension) {
         return new PartitionExpression.Relative(PartitionExpression.Relative.Side.TARGET, dimension);
+    }
+
+    private static PartitionExpression.Relative sourceOf(final Dimension dimension) {
+        return new PartitionExpression.Relative(PartitionExpression.Relative.Side.SOURCE, dimension);
     }
 
     private static Rule rule(final LogicalExpression definition) {
