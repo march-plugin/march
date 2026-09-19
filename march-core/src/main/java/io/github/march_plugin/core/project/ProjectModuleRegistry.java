@@ -52,7 +52,10 @@ public class ProjectModuleRegistry {
             for (final var dependency : moduleEntry.getValue().dependencies()) {
                 final var target = registry.getClassifiedModule(dependency.moduleCoordinates());
                 final var dependencyDescription = source.getModuleCoordinates() + " -> " + target.getModuleCoordinates();
-                moduleDependencies.add(new MavenDependency(source.getClassification(), target.getClassification(), dependencyDescription));
+                moduleDependencies.add(new MavenDependency(
+                        source.getClassification(), target.getClassification(),
+                        source.isLeafModule(), target.isLeafModule(),
+                        dependencyDescription));
             }
         }
         return moduleDependencies;

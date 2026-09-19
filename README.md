@@ -42,19 +42,24 @@ Describe what's allowed in `march-config.xml`:
 ```xml
 <march>
     <settings>
-        <ruleEngine>
-            <ruleStrategy>DEFAULT-DENY</ruleStrategy>
-        </ruleEngine>
+        <activeRuleSet>default</activeRuleSet>
     </settings>
     <rules>
-        <rule>
-            <description>Impl modules may depend on their own API module</description>
-            <definition>
-                source.domain == target.domain AND
-                source.abstraction == abstraction.impl AND
-                target.abstraction == abstraction.api
-            </definition>
-        </rule>
+        <ruleSet name="default">
+            <config>
+                <ruleStrategy>DEFAULT-DENY</ruleStrategy>
+            </config>
+            <rules>
+                <rule>
+                    <description>Impl modules may depend on their own API module</description>
+                    <definition>
+                        source.domain == target.domain AND
+                        source.abstraction == abstraction.impl AND
+                        target.abstraction == abstraction.api
+                    </definition>
+                </rule>
+            </rules>
+        </ruleSet>
     </rules>
 </march>
 ```
@@ -227,17 +232,48 @@ the build. Test frameworks need a `virtualModule`/`virtualModuleRef` too.
 ## Rules and strategy
 
 With every module and package classified, `<rules>` decides which dependencies are actually
-allowed. Two strategies are available, set once per config:
+allowed. `<rules>` holds one or more named `<ruleSet>`s, each with its own `<config>` and its
+own list of `<rule>`s:
 
-- **`DEFAULT-DENY`**: every dependency is forbidden unless some rule explicitly matches it.
-- **`DEFAULT-ALLOW`**: every dependency is allowed unless some rule explicitly matches it.
+```xml
+<rules>
+    <ruleSet name="default">
+        <config>
+            <ruleStrategy>DEFAULT-DENY</ruleStrategy>
+        </config>
+        <rules>
+            <rule><!-- ... --></rule>
+        </rules>
+    </ruleSet>
+</rules>
+```
+
+`<settings><activeRuleSet>` names which one is actually enforced at build time. It's required
+as soon as any `<ruleSet>` is declared. Every other declared rule set is still checked for
+validity by `march:config-check`, but isn't enforced, and can be compared against the active
+one (or against each other) with [`march:equivalence`](#marchequivalence) to check whether two
+formulations of a policy actually allow the same dependencies.
+
+Each `<ruleSet>`'s `<config>` sets its own strategy:
+
+- **`ruleStrategy`**: `DEFAULT-DENY` (default) forbids every dependency unless some rule
+  explicitly matches it, `DEFAULT-ALLOW` allows every dependency unless some rule explicitly
+  matches it.
 
 By default a rule is checked against **both** the Maven module graph and the compiled bytecode.
 `<scope>module_only</scope>` or `<scope>package_only</scope>` restricts a rule to just one of the two.
 
-`<scopeStrategy>` controls if package rules affect module scope:
-- **`MANUAL`** (default): If a cross-module package dependency is needed, users must manually define a rule allowing the module dependency, mostly with `module_only` scope.
-- **`AUTOMATIC`**: If any cross-module package dependency is allowed, then the module dependency is automatically allowed too.
+- **`scopeStrategy`** controls if package rules affect module scope:
+  - **`MANUAL`** (default): If a cross-module package dependency is needed, users must manually define a rule allowing the module dependency, mostly with `module_only` scope.
+  - **`AUTOMATIC`**: If any cross-module package dependency is allowed, then the module dependency is automatically allowed too.
+- **`dependencyConfig`** controls how non-leaf modules
+  and packages are treated:
+  - **`LEAVES_ONLY`** (default): any dependency to or from a non-leaf module or package is forbidden.
+  - **`ANY_LEVEL`**: non-leaf dependencies are governed by your rules like any other dependency.
+
+Comparing two rule sets with [`march:equivalence`](#marchequivalence) requires both to declare
+the same `dependencyConfig`; comparing under a different domain on each side would not be
+meaningful.
 
 Each `<rule>` has a `<definition>`: a boolean expression evaluated for every candidate
 dependency, where `source` is the dependent side and `target` is the thing being depended on.
@@ -261,18 +297,17 @@ Supported operators: `==`, `!=`, `IN <dimension>.(a|b|c)`, combined with `AND`, 
 ## Static dependency-declaration checks
 
 march also enforces a few Maven dependency-hygiene checks, independent of `<rules>`. They run
-on every `<dependency>` and `dependencyManagement` entry, on every build. `<staticEnforcement>`
-(inside `<settings>`) turns individual checks off. Omit it entirely to keep the defaults:
+on every `<dependency>` and `dependencyManagement` entry, on every build. These checks live
+directly under `<settings>`, alongside `activeRuleSet`, and turn individual checks off. Omit
+them entirely to keep the defaults:
 
 ```xml
 <settings>
-    <staticEnforcement>
-        <requireManagedVersion>true</requireManagedVersion>
-        <forbidInlineVersion>true</forbidInlineVersion>
-        <forbidInlineScope>true</forbidInlineScope>
-        <forbidExclusions>false</forbidExclusions>
-        <requireVersionProperty>true</requireVersionProperty>
-    </staticEnforcement>
+    <requireManagedVersion>true</requireManagedVersion>
+    <forbidInlineVersion>true</forbidInlineVersion>
+    <forbidInlineScope>true</forbidInlineScope>
+    <forbidExclusions>false</forbidExclusions>
+    <requireVersionProperty>true</requireVersionProperty>
 </settings>
 ```
 
@@ -342,6 +377,28 @@ mvn march:module-matrix -Dmarch.showRules=false
 - `-Dmarch.showRules`: whether cells show which rule matched (default `true`). Set to `false` to
   collapse cells to just `OK` (allowed) or blank (forbidden), without revealing which specific
   rule decided that.
+
+### `march:config-check`
+
+Checks the active rule set for issues a schema validation can't catch: rules that can never
+match any real classification (unreachable), and rules whose removal wouldn't change the
+outcome for any dependency (redundant).
+
+```
+mvn march:config-check
+```
+
+### `march:equivalence`
+
+Checks whether two rule sets decide every dependency the same way, over the leaf,
+non-reflexive classification domain (or every classification, with `dependencyConfig` set to
+`ANY_LEVEL`). Two rule sets that disagree describe two different real policies, even if both
+individually validate without error. Without `-Dmarch.sets`, every declared pair is compared.
+
+```
+mvn march:equivalence
+mvn march:equivalence -Dmarch.sets=default-allow;default-deny
+```
 
 ## License
 

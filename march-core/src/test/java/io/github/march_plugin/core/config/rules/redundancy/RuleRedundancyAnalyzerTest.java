@@ -6,6 +6,7 @@ import io.github.march_plugin.core.config.projectstructure.model.ModuleConventio
 import io.github.march_plugin.core.config.projectstructure.model.ModuleModularity;
 import io.github.march_plugin.core.config.projectstructure.model.PackageConvention;
 import io.github.march_plugin.core.config.projectstructure.model.PackageModularity;
+import io.github.march_plugin.core.config.rules.config.DependencyConfig;
 import io.github.march_plugin.core.config.rules.config.ScopeStrategy;
 import io.github.march_plugin.core.config.rules.model.Rule;
 import io.github.march_plugin.core.config.rules.model.ast.ComparisonExpression;
@@ -41,7 +42,7 @@ class RuleRedundancyAnalyzerTest {
         // B: source.layer IN layer.(service|ui)
         final var ruleB = rule(comparisonWrap(inServiceOrUi()));
 
-        final var redundant = analyzer.findRedundantRules(List.of(ruleA, ruleB), null, ScopeStrategy.MANUAL);
+        final var redundant = analyzer.findRedundantRules(List.of(ruleA, ruleB), null, ScopeStrategy.MANUAL, DependencyConfig.ANY_LEVEL);
 
         assertThat(redundant).containsExactly(ruleA);
     }
@@ -53,7 +54,7 @@ class RuleRedundancyAnalyzerTest {
         // B: source.layer == layer.ui
         final var ruleB = rule(comparisonWrap(equalTo(uiPart)));
 
-        final var redundant = analyzer.findRedundantRules(List.of(ruleA, ruleB), null, ScopeStrategy.MANUAL);
+        final var redundant = analyzer.findRedundantRules(List.of(ruleA, ruleB), null, ScopeStrategy.MANUAL, DependencyConfig.ANY_LEVEL);
 
         assertThat(redundant).isEmpty();
     }
@@ -63,7 +64,7 @@ class RuleRedundancyAnalyzerTest {
         final var ruleA = rule(comparisonWrap(equalTo(servicePart)));
         final var ruleB = rule(comparisonWrap(equalTo(servicePart)));
 
-        final var redundant = analyzer.findRedundantRules(List.of(ruleA, ruleB), null, ScopeStrategy.MANUAL);
+        final var redundant = analyzer.findRedundantRules(List.of(ruleA, ruleB), null, ScopeStrategy.MANUAL, DependencyConfig.ANY_LEVEL);
 
         assertThat(redundant).containsExactlyInAnyOrder(ruleA, ruleB);
     }
@@ -72,7 +73,7 @@ class RuleRedundancyAnalyzerTest {
     void doesNotFlagASingleRuleWithNothingToCoverIt() {
         final var ruleA = rule(comparisonWrap(equalTo(servicePart)));
 
-        final var redundant = analyzer.findRedundantRules(List.of(ruleA), null, ScopeStrategy.MANUAL);
+        final var redundant = analyzer.findRedundantRules(List.of(ruleA), null, ScopeStrategy.MANUAL, DependencyConfig.ANY_LEVEL);
 
         assertThat(redundant).isEmpty();
     }
@@ -84,7 +85,7 @@ class RuleRedundancyAnalyzerTest {
         // B: source.layer != NULL (true for any classified value, including "service")
         final var ruleB = rule(comparisonWrap(new ComparisonExpression.NotEqual(sourceLayer(), new PartitionExpression.Null())));
 
-        final var redundant = analyzer.findRedundantRules(List.of(ruleA, ruleB), null, ScopeStrategy.MANUAL);
+        final var redundant = analyzer.findRedundantRules(List.of(ruleA, ruleB), null, ScopeStrategy.MANUAL, DependencyConfig.ANY_LEVEL);
 
         assertThat(redundant).containsExactly(ruleA);
     }
@@ -105,7 +106,7 @@ class RuleRedundancyAnalyzerTest {
         // B: matches every classification unconditionally
         final var allowAllRule = new Rule("allow everything", new LogicalExpression.AlwaysTrue(), Rule.RuleScope.GLOBAL);
 
-        final var redundant = analyzer.findRedundantRules(List.of(accessRule, allowAllRule), root, ScopeStrategy.MANUAL);
+        final var redundant = analyzer.findRedundantRules(List.of(accessRule, allowAllRule), root, ScopeStrategy.MANUAL, DependencyConfig.ANY_LEVEL);
 
         assertThat(redundant).containsExactly(accessRule);
     }
@@ -117,7 +118,7 @@ class RuleRedundancyAnalyzerTest {
         // B (MODULE_ONLY): source.layer == layer.service -- identical condition, but only in the module context
         final var moduleOnlyDuplicate = new Rule("module-only", comparisonWrap(equalTo(servicePart)), Rule.RuleScope.MODULE_ONLY);
 
-        final var redundant = analyzer.findRedundantRules(List.of(globalRule, moduleOnlyDuplicate), null, ScopeStrategy.MANUAL);
+        final var redundant = analyzer.findRedundantRules(List.of(globalRule, moduleOnlyDuplicate), null, ScopeStrategy.MANUAL, DependencyConfig.ANY_LEVEL);
 
         // moduleOnlyDuplicate contributes nothing the GLOBAL rule doesn't already cover in the module
         // context, so it is redundant. globalRule, however, is the only rule left in the package context
@@ -131,7 +132,7 @@ class RuleRedundancyAnalyzerTest {
         final var moduleOnlyDuplicate = new Rule("module-only", comparisonWrap(equalTo(servicePart)), Rule.RuleScope.MODULE_ONLY);
         final var packageOnlyDuplicate = new Rule("package-only", comparisonWrap(equalTo(servicePart)), Rule.RuleScope.PACKAGE_ONLY);
 
-        final var redundant = analyzer.findRedundantRules(List.of(globalRule, moduleOnlyDuplicate, packageOnlyDuplicate), null, ScopeStrategy.MANUAL);
+        final var redundant = analyzer.findRedundantRules(List.of(globalRule, moduleOnlyDuplicate, packageOnlyDuplicate), null, ScopeStrategy.MANUAL, DependencyConfig.ANY_LEVEL);
 
         assertThat(redundant).contains(globalRule);
     }
@@ -145,11 +146,11 @@ class RuleRedundancyAnalyzerTest {
 
         // RuleEnforcer#matchesAtModuleLevel evaluates every rule, including PACKAGE_ONLY ones, at module level
         // when scopeStrategy is AUTOMATIC, so broadPackageOnlyRule also decides module-level dependencies here.
-        final var underAutomatic = analyzer.findRedundantRules(List.of(narrowRule, broadPackageOnlyRule), null, ScopeStrategy.AUTOMATIC);
+        final var underAutomatic = analyzer.findRedundantRules(List.of(narrowRule, broadPackageOnlyRule), null, ScopeStrategy.AUTOMATIC, DependencyConfig.ANY_LEVEL);
         assertThat(underAutomatic).containsExactly(narrowRule);
 
         // Under MANUAL, PACKAGE_ONLY rules never apply at module level, so nothing covers narrowRule there.
-        final var underManual = analyzer.findRedundantRules(List.of(narrowRule, broadPackageOnlyRule), null, ScopeStrategy.MANUAL);
+        final var underManual = analyzer.findRedundantRules(List.of(narrowRule, broadPackageOnlyRule), null, ScopeStrategy.MANUAL, DependencyConfig.ANY_LEVEL);
         assertThat(underManual).isEmpty();
     }
 
@@ -186,12 +187,12 @@ class RuleRedundancyAnalyzerTest {
 
         // Without the tree, the dimension model alone allows component.util together with module_type.client,
         // so only the narrower rule is redundant.
-        final var withoutTree = analyzer.findRedundantRules(List.of(broaderRule, narrowerRule), null, ScopeStrategy.MANUAL);
+        final var withoutTree = analyzer.findRedundantRules(List.of(broaderRule, narrowerRule), null, ScopeStrategy.MANUAL, DependencyConfig.ANY_LEVEL);
         assertThat(withoutTree).containsExactly(narrowerRule);
 
         // With the tree, module_type.client can never occur outside component.domain, so both rules become
         // interchangeable and both are reported redundant.
-        final var withTree = analyzer.findRedundantRules(List.of(broaderRule, narrowerRule), root, ScopeStrategy.MANUAL);
+        final var withTree = analyzer.findRedundantRules(List.of(broaderRule, narrowerRule), root, ScopeStrategy.MANUAL, DependencyConfig.ANY_LEVEL);
         assertThat(withTree).containsExactlyInAnyOrder(broaderRule, narrowerRule);
     }
 
@@ -220,10 +221,10 @@ class RuleRedundancyAnalyzerTest {
                 comparisonWrap(new ComparisonExpression.Equal(targetOf(componentDim), new PartitionExpression.Fixed(domainPart)))
         ), Rule.RuleScope.MODULE_ONLY);
 
-        final var withoutTree = analyzer.findRedundantRules(List.of(broaderRule, narrowerRule), null, ScopeStrategy.MANUAL);
+        final var withoutTree = analyzer.findRedundantRules(List.of(broaderRule, narrowerRule), null, ScopeStrategy.MANUAL, DependencyConfig.ANY_LEVEL);
         assertThat(withoutTree).containsExactly(narrowerRule);
 
-        final var withTree = analyzer.findRedundantRules(List.of(broaderRule, narrowerRule), root, ScopeStrategy.MANUAL);
+        final var withTree = analyzer.findRedundantRules(List.of(broaderRule, narrowerRule), root, ScopeStrategy.MANUAL, DependencyConfig.ANY_LEVEL);
         assertThat(withTree).containsExactlyInAnyOrder(broaderRule, narrowerRule);
     }
 
@@ -257,7 +258,7 @@ class RuleRedundancyAnalyzerTest {
         // B: target.module_type == client -- a disjoint leaf-level rule that does not cover A.
         final var leafRule = new Rule("leaf", comparisonWrap(new ComparisonExpression.Equal(targetOf(moduleTypeDim), new PartitionExpression.Fixed(clientPart))), Rule.RuleScope.MODULE_ONLY);
 
-        final var redundant = analyzer.findRedundantRules(List.of(aggregatorRule, leafRule), root, ScopeStrategy.MANUAL);
+        final var redundant = analyzer.findRedundantRules(List.of(aggregatorRule, leafRule), root, ScopeStrategy.MANUAL, DependencyConfig.ANY_LEVEL);
 
         // Neither rule is redundant: the aggregator module's own classification is a real, distinct state
         // that only the aggregator rule covers.
@@ -299,7 +300,7 @@ class RuleRedundancyAnalyzerTest {
         final var moduleTypeRule = new Rule("module-type", comparisonWrap(new ComparisonExpression.Equal(targetOf(moduleTypeDim), new PartitionExpression.Fixed(modelPart))), Rule.RuleScope.MODULE_ONLY);
         final var utilConcernRule = new Rule("util-concern", comparisonWrap(new ComparisonExpression.Equal(targetOf(utilConcernDim), new PartitionExpression.Fixed(loggingPart))), Rule.RuleScope.MODULE_ONLY);
 
-        final var redundant = analyzer.findRedundantRules(List.of(moduleTypeRule, utilConcernRule), root, ScopeStrategy.MANUAL);
+        final var redundant = analyzer.findRedundantRules(List.of(moduleTypeRule, utilConcernRule), root, ScopeStrategy.MANUAL, DependencyConfig.ANY_LEVEL);
 
         assertThat(redundant).isEmpty();
     }
@@ -338,13 +339,45 @@ class RuleRedundancyAnalyzerTest {
 
         // Without the tree, the dimension model alone allows component.util together with layer_kind.impl,
         // so only the narrower rule is redundant.
-        final var withoutTree = analyzer.findRedundantRules(List.of(broaderRule, narrowerRule), null, ScopeStrategy.MANUAL);
+        final var withoutTree = analyzer.findRedundantRules(List.of(broaderRule, narrowerRule), null, ScopeStrategy.MANUAL, DependencyConfig.ANY_LEVEL);
         assertThat(withoutTree).containsExactly(narrowerRule);
 
         // With the tree, layer_kind.impl can never occur outside component.domain, so both rules become
         // interchangeable and both are reported redundant.
-        final var withTree = analyzer.findRedundantRules(List.of(broaderRule, narrowerRule), root, ScopeStrategy.MANUAL);
+        final var withTree = analyzer.findRedundantRules(List.of(broaderRule, narrowerRule), root, ScopeStrategy.MANUAL, DependencyConfig.ANY_LEVEL);
         assertThat(withTree).containsExactlyInAnyOrder(broaderRule, narrowerRule);
+    }
+
+    @Test
+    void moduleContextIgnoresCombinationsOnlyReachableThroughAPackage() {
+        // Same tree as treeRestrictionAppliesAtThePackageLevelToo: layer_kind is classified by package
+        // modularities nested under the "domain" module. No real module is ever classified by layer_kind,
+        // only packages beneath domainModule are.
+        final var componentBuilder = new Dimension.Builder("component");
+        final var domainPart = componentBuilder.addPartition("domain");
+        final var utilPart = componentBuilder.addPartition("util");
+        final var componentDim = componentBuilder.build();
+
+        final var layerKindBuilder = new Dimension.Builder("layer_kind");
+        final var apiPart = layerKindBuilder.addPartition("api");
+        layerKindBuilder.addPartition("impl");
+        final var layerKindDim = layerKindBuilder.build();
+
+        final var root = new ModuleModularity.Builder(componentDim, convention()).buildAsRoot();
+        final var domainModule = new ModuleModularity.Builder(layerKindDim, convention())
+                .setCasePartitions(caseOf(domainPart))
+                .buildAsChild(root);
+        new PackageModularity.Builder(null, packageConvention()).setCasePartitions(caseOf(apiPart)).buildAsChild(domainModule);
+        new ModuleModularity.Builder(null, convention()).setCasePartitions(caseOf(utilPart)).buildAsChild(root);
+
+        // MODULE_ONLY, so only the module context decides reachability here.
+        final var moduleOnlyRule = new Rule("module-only", comparisonWrap(new ComparisonExpression.Equal(targetOf(layerKindDim), new PartitionExpression.Fixed(apiPart))), Rule.RuleScope.MODULE_ONLY);
+
+        final var unreachable = analyzer.findUnreachableRules(List.of(moduleOnlyRule), root, ScopeStrategy.MANUAL, DependencyConfig.ANY_LEVEL);
+
+        // No real module is ever classified by layer_kind, only packages under domainModule are, so this
+        // MODULE_ONLY rule can never actually fire on a real module dependency and must be unreachable.
+        assertThat(unreachable).containsExactly(moduleOnlyRule);
     }
 
     @Test
@@ -356,7 +389,7 @@ class RuleRedundancyAnalyzerTest {
                 comparisonWrap(new ComparisonExpression.Equal(targetOf(layerDim), new PartitionExpression.Fixed(uiPart)))
         ), Rule.RuleScope.GLOBAL);
 
-        final var unreachable = analyzer.findUnreachableRules(List.of(contradictoryRule), null, ScopeStrategy.MANUAL);
+        final var unreachable = analyzer.findUnreachableRules(List.of(contradictoryRule), null, ScopeStrategy.MANUAL, DependencyConfig.ANY_LEVEL);
 
         assertThat(unreachable).containsExactly(contradictoryRule);
     }
@@ -366,7 +399,7 @@ class RuleRedundancyAnalyzerTest {
         final var ruleA = rule(comparisonWrap(equalTo(servicePart)));
         final var ruleB = rule(comparisonWrap(equalTo(uiPart)));
 
-        final var unreachable = analyzer.findUnreachableRules(List.of(ruleA, ruleB), null, ScopeStrategy.MANUAL);
+        final var unreachable = analyzer.findUnreachableRules(List.of(ruleA, ruleB), null, ScopeStrategy.MANUAL, DependencyConfig.ANY_LEVEL);
 
         assertThat(unreachable).isEmpty();
     }
@@ -400,14 +433,14 @@ class RuleRedundancyAnalyzerTest {
                 comparisonWrap(new ComparisonExpression.Equal(targetOf(componentDim), new PartitionExpression.Fixed(utilPart)))
         ), Rule.RuleScope.MODULE_ONLY);
 
-        final var unreachable = analyzer.findUnreachableRules(List.of(impossibleRule), root, ScopeStrategy.MANUAL);
+        final var unreachable = analyzer.findUnreachableRules(List.of(impossibleRule), root, ScopeStrategy.MANUAL, DependencyConfig.ANY_LEVEL);
         assertThat(unreachable).containsExactly(impossibleRule);
 
         // A caller that excludes rules already found unreachable, as findRedundantRules's contract requires,
         // never sees this rule reported as redundant, even though its own literal is trivially unsatisfiable
         // and would otherwise make every assumptionsFor() query against it trivially unsatisfiable too.
         final var rulesToCheck = List.of(impossibleRule).stream().filter(rule -> !unreachable.contains(rule)).toList();
-        final var redundant = analyzer.findRedundantRules(rulesToCheck, root, ScopeStrategy.MANUAL);
+        final var redundant = analyzer.findRedundantRules(rulesToCheck, root, ScopeStrategy.MANUAL, DependencyConfig.ANY_LEVEL);
         assertThat(redundant).isEmpty();
     }
 

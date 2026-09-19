@@ -47,15 +47,16 @@ public class MarchConfigCheckMojo extends AbstractMojo {
             }
             final var marchConfigDto = new MarchConfigFileReader(configFile).readConfig();
             final var dimensionRegistry = new DimensionRegistryInitializer().build(marchConfigDto.dimensions());
-            final var ruleRegistry = new RuleRegistryInitializer(new RuleDefinitionCompiler(dimensionRegistry)).build(marchConfigDto.rules(), marchConfigDto.ruleEngine());
+            final var ruleRegistry = new RuleRegistryInitializer(new RuleDefinitionCompiler(dimensionRegistry)).buildActive(marchConfigDto);
             final var projectStructureRoot = new ProjectStructureInitializer(dimensionRegistry).build(marchConfigDto.projectStructure());
 
             final var analyzer = new RuleRedundancyAnalyzer();
             final var allRules = ruleRegistry.getRules();
             final var scopeStrategy = ruleRegistry.getScopeStrategy();
-            final var unreachableRules = analyzer.findUnreachableRules(allRules, projectStructureRoot, scopeStrategy);
+            final var dependencyConfig = ruleRegistry.getDependencyConfig();
+            final var unreachableRules = analyzer.findUnreachableRules(allRules, projectStructureRoot, scopeStrategy, dependencyConfig);
             final var rulesToCheck = allRules.stream().filter(rule -> !unreachableRules.contains(rule)).toList();
-            final var redundantRules = analyzer.findRedundantRules(rulesToCheck, projectStructureRoot, scopeStrategy);
+            final var redundantRules = analyzer.findRedundantRules(rulesToCheck, projectStructureRoot, scopeStrategy, dependencyConfig);
 
             getLog().info("");
             getLog().info(MessageUtils.buffer().strong("March Config Check").build());

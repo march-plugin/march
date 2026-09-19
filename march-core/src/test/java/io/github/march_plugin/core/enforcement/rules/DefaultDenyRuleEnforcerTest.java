@@ -6,12 +6,14 @@ import io.github.march_plugin.core.config.classification.model.ClassifiedPackage
 import io.github.march_plugin.core.config.classification.model.PackageClassification;
 import io.github.march_plugin.core.config.dimensions.model.Dimension;
 import io.github.march_plugin.core.config.projectstructure.model.PackageHierarchy;
+import io.github.march_plugin.core.config.rules.config.DependencyConfig;
 import io.github.march_plugin.core.config.rules.config.RuleRegistry;
 import io.github.march_plugin.core.config.rules.config.ScopeStrategy;
 import io.github.march_plugin.core.enforcement.dependencies.PackageDependencyEvaluationResult;
 import io.github.march_plugin.core.enforcement.dependencies.PackageDependencyEvaluator;
 import io.github.march_plugin.core.config.rules.evaluation.RuleEvaluator;
 import io.github.march_plugin.core.enforcement.rules.exceptions.DependencyNotAllowedException;
+import io.github.march_plugin.core.enforcement.rules.exceptions.NonLeafMavenDependencyException;
 import io.github.march_plugin.core.enforcement.rules.exceptions.PackageDependencyNotAllowedException;
 import io.github.march_plugin.core.project.MavenDependency;
 import io.github.march_plugin.core.project.ProjectModuleRegistry;
@@ -98,7 +100,7 @@ class DefaultDenyRuleEnforcerTest {
         void enforceMavenAllowedWhenRuleMatchesDirectlyAtModuleLevel() {
             final var source = mockClassification(domainA);
             final var target = mockClassification(domainA);
-            final var mavenDependency = new MavenDependency(source, target, "test-artifact");
+            final var mavenDependency = new MavenDependency(source, target, true, true, "test-artifact");
             final var rule = new Rule("Same domain", sameDomainRule, null);
 
             when(ruleEvaluator.evaluate(sameDomainRule, source, target)).thenReturn(true);
@@ -111,7 +113,7 @@ class DefaultDenyRuleEnforcerTest {
         void enforceMavenSkipsRuleReferencingDimensionMissingFromModuleClassification() {
             final var source = mockClassification(domainA);
             final var target = mockClassification(domainA);
-            final var mavenDependency = new MavenDependency(source, target, "test-artifact");
+            final var mavenDependency = new MavenDependency(source, target, true, true, "test-artifact");
             final var rule = new Rule("Business to dbaccess", businessToDbaccessRule, null);
 
             assertThrows(DependencyNotAllowedException.class, () ->
@@ -124,7 +126,7 @@ class DefaultDenyRuleEnforcerTest {
         void enforceMavenViolationWhenNoRuleMatchesAndNoPackagesExist() {
             final var source = mockClassification(domainA);
             final var target = mockClassification(domainB);
-            final var mavenDependency = new MavenDependency(source, target, "test-artifact");
+            final var mavenDependency = new MavenDependency(source, target, true, true, "test-artifact");
             final var rule = new Rule("Same domain", sameDomainRule, null);
 
             when(ruleEvaluator.evaluate(sameDomainRule, source, target)).thenReturn(false);
@@ -137,7 +139,7 @@ class DefaultDenyRuleEnforcerTest {
         void enforceMavenAllowedViaPackageFallbackWhenModuleCheckFindsNothing() {
             final var source = mockClassification(domainA);
             final var target = mockClassification(domainA);
-            final var mavenDependency = new MavenDependency(source, target, "test-artifact");
+            final var mavenDependency = new MavenDependency(source, target, true, true, "test-artifact");
             final var rule = new Rule("Business to dbaccess", businessToDbaccessRule, null);
 
             final var businessPackage = mockPackage("source.business", domainA, layerBusiness);
@@ -154,7 +156,7 @@ class DefaultDenyRuleEnforcerTest {
         void enforceMavenViolationWhenFallbackFindsNoAllowedPackagePairEither() {
             final var source = mockClassification(domainA);
             final var target = mockClassification(domainA);
-            final var mavenDependency = new MavenDependency(source, target, "test-artifact");
+            final var mavenDependency = new MavenDependency(source, target, true, true, "test-artifact");
             final var rule = new Rule("Business to dbaccess", businessToDbaccessRule, null);
 
             final var businessPackage = mockPackage("source.business", domainA, layerBusiness);
@@ -170,7 +172,7 @@ class DefaultDenyRuleEnforcerTest {
         void enforceMavenAllowedWhenSecondRuleMatchesAfterFirstDoesNotMatch() {
             final var source = mockClassification(domainA);
             final var target = mockClassification(domainB);
-            final var mavenDependency = new MavenDependency(source, target, "test-artifact");
+            final var mavenDependency = new MavenDependency(source, target, true, true, "test-artifact");
             final var nonMatchingRule = new Rule("Same domain", sameDomainRule, null);
             final var matchingRule = new Rule("Different domain", differentDomainRule, null);
 
@@ -182,7 +184,7 @@ class DefaultDenyRuleEnforcerTest {
         void enforceMavenViolationWhenCompositeRuleShortCircuitsOnResolvedFalseBranch() {
             final var source = mockClassification(domainA);
             final var target = mockClassification(domainB);
-            final var mavenDependency = new MavenDependency(source, target, "test-artifact");
+            final var mavenDependency = new MavenDependency(source, target, true, true, "test-artifact");
             final var rule = new Rule("Same domain and business", sameDomainAndBusinessLayerRule, null);
 
             assertThrows(DependencyNotAllowedException.class, () ->
@@ -206,7 +208,7 @@ class DefaultDenyRuleEnforcerTest {
         void enforceMavenNeverAttemptsPackageFallback() {
             final var source = mockClassification(domainA);
             final var target = mockClassification(domainA);
-            final var mavenDependency = new MavenDependency(source, target, "test-artifact");
+            final var mavenDependency = new MavenDependency(source, target, true, true, "test-artifact");
             final var rule = new Rule("Business to dbaccess", businessToDbaccessRule, Rule.RuleScope.PACKAGE_ONLY);
 
             final var businessPackage = mockPackage("source.business", domainA, layerBusiness);
@@ -223,7 +225,7 @@ class DefaultDenyRuleEnforcerTest {
             final var realEnforcer = new DefaultDenyRuleEnforcer(packageDependencyEvaluator, ScopeStrategy.MANUAL);
             final var source = mockClassification(domainA);
             final var target = mockClassification(domainA);
-            final var mavenDependency = new MavenDependency(source, target, "test-artifact");
+            final var mavenDependency = new MavenDependency(source, target, true, true, "test-artifact");
             final var rule = new Rule("Same domain", sameDomainRule, Rule.RuleScope.GLOBAL);
 
             assertDoesNotThrow(() ->
@@ -235,7 +237,7 @@ class DefaultDenyRuleEnforcerTest {
             final var realEnforcer = new DefaultDenyRuleEnforcer(packageDependencyEvaluator, ScopeStrategy.MANUAL);
             final var source = mockClassification(domainA);
             final var target = mockClassification(domainB);
-            final var mavenDependency = new MavenDependency(source, target, "test-artifact");
+            final var mavenDependency = new MavenDependency(source, target, true, true, "test-artifact");
             final var rule = new Rule("Same domain", sameDomainRule, Rule.RuleScope.GLOBAL);
 
             assertThrows(DependencyNotAllowedException.class, () ->
@@ -420,6 +422,12 @@ class DefaultDenyRuleEnforcerTest {
 
     private static void invokeEnforceRules(final RuleEnforcer enforcer, final Set<MavenDependency> dependencies,
                                             final Collection<PackageClassification> packages, final List<Rule> rules) {
+        invokeEnforceRules(enforcer, dependencies, packages, rules, null);
+    }
+
+    private static void invokeEnforceRules(final RuleEnforcer enforcer, final Set<MavenDependency> dependencies,
+                                            final Collection<PackageClassification> packages, final List<Rule> rules,
+                                            final DependencyConfig dependencyConfig) {
         final var classificationRegistry = mock(ClassificationRegistry.class);
         final var projectModuleRegistry = mock(ProjectModuleRegistry.class);
         final var ruleRegistry = mock(RuleRegistry.class);
@@ -433,8 +441,23 @@ class DefaultDenyRuleEnforcerTest {
         when(projectModuleRegistry.getDependencies(classificationRegistry)).thenReturn(dependencies);
         when(classificationRegistry.getAllClassifiedPackages()).thenReturn(classifiedPackages);
         when(ruleRegistry.getRules()).thenReturn(rules);
+        when(ruleRegistry.getDependencyConfig()).thenReturn(dependencyConfig);
 
         enforcer.enforceRules(classificationRegistry, projectModuleRegistry, ruleRegistry);
+    }
+
+    @Nested
+    class LeavesOnlyEnforcement {
+
+        @Test
+        void shouldForbidNonLeafDependencyEvenThoughARuleExplicitlyAllowsIt() {
+            final var enforcer = new DefaultDenyRuleEnforcer(packageDependencyEvaluator, ScopeStrategy.MANUAL);
+            final var allowRule = new Rule("Same domain", sameDomainRule, null);
+            final var dependency = new MavenDependency(mockClassification(domainA), mockClassification(domainA), false, true, "a -> a");
+
+            assertThrows(NonLeafMavenDependencyException.class,
+                    () -> invokeEnforceRules(enforcer, Set.of(dependency), List.of(), List.of(allowRule), DependencyConfig.LEAVES_ONLY));
+        }
     }
 
     private static class TestableDefaultDenyRuleEnforcer extends DefaultDenyRuleEnforcer {

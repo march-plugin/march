@@ -1,6 +1,7 @@
 package io.github.march_plugin.core.config.rules.redundancy;
 
 import io.github.march_plugin.core.config.projectstructure.model.ModuleModularity;
+import io.github.march_plugin.core.config.rules.config.DependencyConfig;
 import io.github.march_plugin.core.config.rules.config.ScopeStrategy;
 import io.github.march_plugin.core.config.rules.model.Rule;
 import org.sat4j.core.VecInt;
@@ -24,14 +25,15 @@ public final class RuleRedundancyAnalyzer {
      * @param rules                 the rules to analyze
      * @param projectStructureRoot  the modularity tree root, or {@code null} to leave every classification unrestricted
      * @param scopeStrategy         the configured scope strategy
+     * @param dependencyConfig      whether possible dependencies are restricted to leaves only
      * @return the rules found to be unreachable
      */
-    public List<Rule> findUnreachableRules(final List<Rule> rules, final ModuleModularity projectStructureRoot, final ScopeStrategy scopeStrategy) {
-        final var moduleContext = effectiveRules(rules, Rule.RuleScope.MODULE_ONLY, scopeStrategy);
-        final var packageContext = effectiveRules(rules, Rule.RuleScope.PACKAGE_ONLY, scopeStrategy);
+    public List<Rule> findUnreachableRules(final List<Rule> rules, final ModuleModularity projectStructureRoot, final ScopeStrategy scopeStrategy, final DependencyConfig dependencyConfig) {
+        final var moduleContext = RuleScopeFilter.effectiveRules(rules, Rule.RuleScope.MODULE_ONLY, scopeStrategy);
+        final var packageContext = RuleScopeFilter.effectiveRules(rules, Rule.RuleScope.PACKAGE_ONLY, scopeStrategy);
 
-        final var moduleUnreachable = unreachableWithin(moduleContext, projectStructureRoot);
-        final var packageUnreachable = unreachableWithin(packageContext, projectStructureRoot);
+        final var moduleUnreachable = unreachableWithin(moduleContext, projectStructureRoot, true, dependencyConfig);
+        final var packageUnreachable = unreachableWithin(packageContext, projectStructureRoot, false, dependencyConfig);
 
         return rules.stream()
                 .filter(rule -> isInBoth(rule, moduleUnreachable, packageUnreachable, scopeStrategy))
@@ -45,14 +47,15 @@ public final class RuleRedundancyAnalyzer {
      * @param projectStructureRoot  the modularity tree root, or {@code null} to leave every classification unrestricted
      * @param scopeStrategy         whether a {@code PACKAGE_ONLY} rule also applies at module level, see
      *                              {@code RuleEnforcer#matchesAtModuleLevel}
+     * @param dependencyConfig      whether possible dependencies are restricted to leaves only
      * @return the rules found to be redundant, in their original order
      */
-    public List<Rule> findRedundantRules(final List<Rule> rulesToCheck, final ModuleModularity projectStructureRoot, final ScopeStrategy scopeStrategy) {
-        final var moduleContext = effectiveRules(rulesToCheck, Rule.RuleScope.MODULE_ONLY, scopeStrategy);
-        final var packageContext = effectiveRules(rulesToCheck, Rule.RuleScope.PACKAGE_ONLY, scopeStrategy);
+    public List<Rule> findRedundantRules(final List<Rule> rulesToCheck, final ModuleModularity projectStructureRoot, final ScopeStrategy scopeStrategy, final DependencyConfig dependencyConfig) {
+        final var moduleContext = RuleScopeFilter.effectiveRules(rulesToCheck, Rule.RuleScope.MODULE_ONLY, scopeStrategy);
+        final var packageContext = RuleScopeFilter.effectiveRules(rulesToCheck, Rule.RuleScope.PACKAGE_ONLY, scopeStrategy);
 
-        final var redundantInModuleContext = redundantWithin(moduleContext, projectStructureRoot);
-        final var redundantInPackageContext = redundantWithin(packageContext, projectStructureRoot);
+        final var redundantInModuleContext = redundantWithin(moduleContext, projectStructureRoot, true, dependencyConfig);
+        final var redundantInPackageContext = redundantWithin(packageContext, projectStructureRoot, false, dependencyConfig);
 
         return rulesToCheck.stream()
                 .filter(rule -> isInBoth(rule, redundantInModuleContext, redundantInPackageContext, scopeStrategy))
@@ -69,23 +72,8 @@ public final class RuleRedundancyAnalyzer {
         };
     }
 
-    private List<Rule> effectiveRules(final List<Rule> rules, final Rule.RuleScope contextScope, final ScopeStrategy scopeStrategy) {
-        return rules.stream()
-                .filter(rule -> appliesInContext(rule, contextScope, scopeStrategy))
-                .toList();
-    }
-
-    private boolean appliesInContext(final Rule rule, final Rule.RuleScope contextScope, final ScopeStrategy scopeStrategy) {
-        if (rule.ruleScope() == Rule.RuleScope.GLOBAL || rule.ruleScope() == contextScope) {
-            return true;
-        }
-        return contextScope == Rule.RuleScope.MODULE_ONLY
-                && scopeStrategy == ScopeStrategy.AUTOMATIC
-                && rule.ruleScope() == Rule.RuleScope.PACKAGE_ONLY;
-    }
-
-    private Set<Rule> unreachableWithin(final List<Rule> rules, final ModuleModularity projectStructureRoot) {
-        final var encoder = new RuleSatEncoder(rules, projectStructureRoot);
+    private Set<Rule> unreachableWithin(final List<Rule> rules, final ModuleModularity projectStructureRoot, final boolean moduleContext, final DependencyConfig dependencyConfig) {
+        final var encoder = new RuleSatEncoder(rules, projectStructureRoot, moduleContext, dependencyConfig);
         final var solver = new SatSolverBuilder(encoder.variables()).build();
 
         final var unreachable = new HashSet<Rule>();
@@ -97,8 +85,8 @@ public final class RuleRedundancyAnalyzer {
         return unreachable;
     }
 
-    private Set<Rule> redundantWithin(final List<Rule> rules, final ModuleModularity projectStructureRoot) {
-        final var encoder = new RuleSatEncoder(rules, projectStructureRoot);
+    private Set<Rule> redundantWithin(final List<Rule> rules, final ModuleModularity projectStructureRoot, final boolean moduleContext, final DependencyConfig dependencyConfig) {
+        final var encoder = new RuleSatEncoder(rules, projectStructureRoot, moduleContext, dependencyConfig);
         final var solver = new SatSolverBuilder(encoder.variables()).build();
 
         final var redundant = new HashSet<Rule>();

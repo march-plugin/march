@@ -1,6 +1,6 @@
 package io.github.march_plugin.configuration.initializer;
 
-import io.github.march_plugin.configuration.dto.StaticEnforcementDto;
+import io.github.march_plugin.configuration.dto.SettingsDto;
 import io.github.march_plugin.core.enforcement.dependencies.StaticEnforcementConfig;
 
 /**
@@ -10,23 +10,23 @@ import io.github.march_plugin.core.enforcement.dependencies.StaticEnforcementCon
 public class StaticEnforcementConfigInitializer {
 
     /**
-     * Builds the static enforcement config from the given DTO.
+     * Builds the static enforcement config from the given settings.
      *
-     * @param dto the static enforcement settings declared in the March configuration, or {@code null} if omitted
+     * @param settings the settings declared in the March configuration
      * @return the built static enforcement config
      */
-    public StaticEnforcementConfig build(final StaticEnforcementDto dto) {
+    public StaticEnforcementConfig build(final SettingsDto settings) {
         final var defaults = StaticEnforcementConfig.defaults();
-        if (dto == null) {
+        if (settings == null) {
             return defaults;
         }
 
         return new StaticEnforcementConfig(
-                dto.requireManagedVersion() == null ? defaults.requireManagedVersion() : dto.requireManagedVersion(),
-                dto.forbidInlineVersion() == null ? defaults.forbidInlineVersion() : dto.forbidInlineVersion(),
-                dto.forbidInlineScope() == null ? defaults.forbidInlineScope() : dto.forbidInlineScope(),
-                dto.forbidExclusions() == null ? defaults.forbidExclusions() : dto.forbidExclusions(),
-                dto.requireVersionProperty() == null ? defaults.requireVersionProperty() : dto.requireVersionProperty()
+                settings.requireManagedVersion() == null ? defaults.requireManagedVersion() : settings.requireManagedVersion(),
+                settings.forbidInlineVersion() == null ? defaults.forbidInlineVersion() : settings.forbidInlineVersion(),
+                settings.forbidInlineScope() == null ? defaults.forbidInlineScope() : settings.forbidInlineScope(),
+                settings.forbidExclusions() == null ? defaults.forbidExclusions() : settings.forbidExclusions(),
+                settings.requireVersionProperty() == null ? defaults.requireVersionProperty() : settings.requireVersionProperty()
         );
     }
 }

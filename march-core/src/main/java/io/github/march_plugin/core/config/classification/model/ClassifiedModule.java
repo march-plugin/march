@@ -9,6 +9,16 @@ public abstract class ClassifiedModule extends ClassifiedComponent {
         super(moduleCoordinates, classification, partition);
     }
 
+    /**
+     * Whether this module is a leaf in the module hierarchy, meaning it has no child modules (it may still
+     * have classified packages of its own).
+     *
+     * @return {@code true} if none of this module's children are themselves a module
+     */
+    public boolean isLeafModule() {
+        return getChildren().stream().noneMatch(ClassifiedModule.class::isInstance);
+    }
+
     public static abstract class Builder<T extends ClassifiedModule> extends ClassifiedComponent.Builder<T, ModuleModularity> {
 
         /**

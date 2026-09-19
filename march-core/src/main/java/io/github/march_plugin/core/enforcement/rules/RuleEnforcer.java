@@ -4,17 +4,21 @@ import io.github.march_plugin.core.config.classification.model.Classification;
 import io.github.march_plugin.core.config.classification.model.ClassificationRegistry;
 import io.github.march_plugin.core.config.classification.model.ClassifiedPackage;
 import io.github.march_plugin.core.config.classification.model.PackageClassification;
+import io.github.march_plugin.core.config.rules.config.DependencyConfig;
 import io.github.march_plugin.core.config.rules.config.RuleRegistry;
 import io.github.march_plugin.core.config.rules.config.ScopeStrategy;
 import io.github.march_plugin.core.config.rules.evaluation.RuleEvaluator;
 import io.github.march_plugin.core.enforcement.dependencies.ForbiddenDependency;
 import io.github.march_plugin.core.enforcement.dependencies.PackageDependencyEvaluator;
+import io.github.march_plugin.core.enforcement.rules.exceptions.NonLeafMavenDependencyException;
+import io.github.march_plugin.core.enforcement.rules.exceptions.NonLeafPackageDependencyException;
 import io.github.march_plugin.core.project.MavenDependency;
 import io.github.march_plugin.core.config.rules.model.Rule;
 import io.github.march_plugin.core.project.ProjectModuleRegistry;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Enforces the configured rules on all modules and packages.
@@ -105,11 +109,46 @@ public abstract class RuleEnforcer {
         final var dependencies = projectModuleRegistry.getDependencies(classificationRegistry);
         final var packageClassifications = classificationRegistry.getAllClassifiedPackages().stream().map(ClassifiedPackage::getClassifiedPackage).toList();
 
+        if (ruleRegistry.getDependencyConfig() == DependencyConfig.LEAVES_ONLY) {
+            enforceLeavesOnly(dependencies, packageClassifications);
+        }
+
         for (final var dependency : dependencies) {
             enforceRulesOnMavenDependencies(dependency, ruleRegistry.getRules(), packageClassifications);
         }
 
         enforceRulesOnPackageDependencies(packageClassifications, ruleRegistry.getRules().stream().filter(r -> !Rule.RuleScope.MODULE_ONLY.equals(r.ruleScope())).toList());
+    }
+
+    /**
+     * Unconditionally forbids any dependency touching a non-leaf module or package.
+     *
+     * @param dependencies the real Maven dependencies of the project
+     * @param packageClassifications all packages classified in the project
+     */
+    private void enforceLeavesOnly(final Set<MavenDependency> dependencies, final Collection<PackageClassification> packageClassifications) {
+        for (final var dependency : dependencies) {
+            if (!dependency.sourceIsLeaf() || !dependency.targetIsLeaf()) {
+                throw new NonLeafMavenDependencyException(dependency.description(), dependency.source(), dependency.target());
+            }
+        }
+
+        for (final var source : packageClassifications) {
+            for (final var target : packageClassifications) {
+                if (source.equals(target) || (source.isClassificationLeaf() && target.isClassificationLeaf())) {
+                    continue;
+                }
+
+                final var forbiddenDependency = new ForbiddenDependency(source, target, null);
+                final var evaluationResult = packageDependencyEvaluator.evaluateForbiddenDependency(forbiddenDependency);
+                if (evaluationResult.containsViolation()) {
+                    throw new NonLeafPackageDependencyException(
+                            source.packageHierarchy() + " -> " + target.packageHierarchy(),
+                            source.classification(), target.classification(),
+                            evaluationResult.detail());
+                }
+            }
+        }
     }
 
     /**

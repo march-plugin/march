@@ -70,7 +70,7 @@ public class MarchValidateMojo extends AbstractMojo {
             final var marchConfigDto = new MarchConfigFileReader(resolvedConfigFile).readConfig();
 
             final var dimensionRegistry = new DimensionRegistryInitializer().build(marchConfigDto.dimensions());
-            final var ruleRegistry = new RuleRegistryInitializer(new RuleDefinitionCompiler(dimensionRegistry)).build(marchConfigDto.rules(), marchConfigDto.ruleEngine());
+            final var ruleRegistry = new RuleRegistryInitializer(new RuleDefinitionCompiler(dimensionRegistry)).buildActive(marchConfigDto);
             final var projectStructureRoot = new ProjectStructureInitializer(dimensionRegistry).build(marchConfigDto.projectStructure());
             final var packageTemplateRegistry = new PackageTemplateRegistryInitializer().build(marchConfigDto.packageTemplates());
             final var classificationRegistry = new ClassificationRegistryInitializer(projectStructureRoot, packageTemplateRegistry).build(marchConfigDto.modules().module());
@@ -83,7 +83,7 @@ public class MarchValidateMojo extends AbstractMojo {
             new ProjectComponentEnforcer().validateComponentExistence(projectModuleRegistry, classificationRegistry);
 
             // Validate dependency definitions
-            final var staticEnforcementConfig = new StaticEnforcementConfigInitializer().build(marchConfigDto.staticEnforcement());
+            final var staticEnforcementConfig = new StaticEnforcementConfigInitializer().build(marchConfigDto.settings());
             new ModuleDependencyEnforcer(staticEnforcementConfig).validateDependencyDefinitions(projectModuleRegistry, classificationRegistry);
 
 
