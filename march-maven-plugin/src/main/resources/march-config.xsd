@@ -22,17 +22,28 @@
 
     <xs:complexType name="settingsType">
         <xs:annotation>
-            <xs:documentation>Everything that is not part of the user-defined rule list. Optional -
-                omitting it, or any element inside it, falls back to defaults (DEFAULT-DENY/MANUAL for
-                the rule engine, all-checks-on-except-forbidExclusions for static enforcement).</xs:documentation>
+            <xs:documentation>Everything that is not part of the rule sets themselves. Optional - omitting
+                it, or any element inside it, falls back to defaults (no active rule set, all-checks-on-except-
+                forbidExclusions for static enforcement).</xs:documentation>
         </xs:annotation>
         <xs:all>
-            <xs:element name="ruleEngine" type="ruleEngineType" minOccurs="0"/>
-            <xs:element name="staticEnforcement" type="staticEnforcementType" minOccurs="0"/>
+            <xs:element name="activeRuleSet" type="xs:string" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>The name of the ruleSet (see rulesType/ruleSetType below) actually
+                        enforced at build time. Required if any ruleSet is declared, ignored otherwise.
+                        Every other declared ruleSet is still checked by march:config-check, but not
+                        enforced.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="requireManagedVersion" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="forbidInlineVersion" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="forbidInlineScope" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="forbidExclusions" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="requireVersionProperty" type="xs:boolean" minOccurs="0"/>
         </xs:all>
     </xs:complexType>
 
-    <xs:complexType name="ruleEngineType">
+    <xs:complexType name="configType">
         <xs:all>
             <xs:element name="ruleStrategy" type="ruleStrategyType" minOccurs="0"/>
             <xs:element name="scopeStrategy" type="scopeStrategyType" minOccurs="0"/>
@@ -52,20 +63,6 @@
             <xs:enumeration value="MANUAL"/>
         </xs:restriction>
     </xs:simpleType>
-
-    <xs:complexType name="staticEnforcementType">
-        <xs:annotation>
-            <xs:documentation>Hardcoded Maven dependency-hygiene checks that always run unconditionally
-                unless turned off individually here.</xs:documentation>
-        </xs:annotation>
-        <xs:all>
-            <xs:element name="requireManagedVersion" type="xs:boolean" minOccurs="0"/>
-            <xs:element name="forbidInlineVersion" type="xs:boolean" minOccurs="0"/>
-            <xs:element name="forbidInlineScope" type="xs:boolean" minOccurs="0"/>
-            <xs:element name="forbidExclusions" type="xs:boolean" minOccurs="0"/>
-            <xs:element name="requireVersionProperty" type="xs:boolean" minOccurs="0"/>
-        </xs:all>
-    </xs:complexType>
 
     <!-- ================= dimensions ================= -->
 
@@ -221,6 +218,27 @@
     <!-- ================= rules ================= -->
 
     <xs:complexType name="rulesType">
+        <xs:sequence>
+            <xs:element name="ruleSet" type="ruleSetType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ruleSetType">
+        <xs:annotation>
+            <xs:documentation>One formulation of the architecture policy: its own DEFAULT-ALLOW/DEFAULT-DENY
+                rule strategy and scope strategy, plus the rules that implement it. Multiple ruleSets sharing
+                one dimensions/projectStructure can be checked against each other for equivalence by
+                march:equivalence-check; exactly one must be named by settings/activeRuleSet to actually be
+                enforced at build time.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="config" type="configType" minOccurs="0"/>
+            <xs:element name="rules" type="ruleListType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="name" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="ruleListType">
         <xs:sequence>
             <xs:element name="rule" type="ruleType" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>

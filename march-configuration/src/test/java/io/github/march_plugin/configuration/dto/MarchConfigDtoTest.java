@@ -1,7 +1,7 @@
 package io.github.march_plugin.configuration.dto;
 
 import io.github.march_plugin.configuration.dto.rules.RuleConfigurationDto;
-import io.github.march_plugin.configuration.dto.rules.RuleDto;
+import io.github.march_plugin.configuration.dto.rules.RuleSetDto;
 import io.github.march_plugin.configuration.dto.rules.RuleStrategyDto;
 import org.junit.jupiter.api.Test;
 
@@ -11,7 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class MarchConfigDtoTest {
 
-    private static MarchConfigDto configOf(final SettingsDto settings, final List<RuleDto> rules) {
+    private static MarchConfigDto configOf(final SettingsDto settings, final List<RuleSetDto> rules) {
         return new MarchConfigDto(null, null, null, null, settings, rules);
     }
 
@@ -23,39 +23,33 @@ class MarchConfigDtoTest {
     }
 
     @Test
-    void shouldReturnNullRuleEngineWhenSettingsElementOmitted() {
+    void shouldReturnNullActiveRuleSetWhenSettingsElementOmitted() {
         final var config = configOf(null, null);
 
-        assertThat(config.ruleEngine()).isNull();
+        assertThat(config.activeRuleSet()).isNull();
     }
 
     @Test
-    void shouldReturnNullStaticEnforcementWhenSettingsElementOmitted() {
-        final var config = configOf(null, null);
+    void shouldReturnNullActiveRuleSetWhenActiveRuleSetElementOmitted() {
+        final var config = configOf(new SettingsDto(null, null, null, null, null, null), null);
 
-        assertThat(config.staticEnforcement()).isNull();
+        assertThat(config.activeRuleSet()).isNull();
     }
 
     @Test
-    void shouldReturnNullRuleEngineWhenRuleEngineElementOmitted() {
-        final var config = configOf(new SettingsDto(null, null), null);
+    void shouldReturnNullActiveRuleSetWhenNameDoesNotMatchAnyDeclaredRuleSet() {
+        final var ruleSet = new RuleSetDto("default-allow", new RuleConfigurationDto(RuleStrategyDto.DEFAULT_ALLOW, null), null);
+        final var config = configOf(new SettingsDto("typo", null, null, null, null, null), List.of(ruleSet));
 
-        assertThat(config.ruleEngine()).isNull();
+        assertThat(config.activeRuleSet()).isNull();
     }
 
     @Test
-    void shouldReturnRuleEngineWhenSettingsPresent() {
-        final var ruleEngine = new RuleConfigurationDto(RuleStrategyDto.DEFAULT_ALLOW, null);
-        final var config = configOf(new SettingsDto(ruleEngine, null), null);
+    void shouldResolveActiveRuleSetByName() {
+        final var allow = new RuleSetDto("default-allow", new RuleConfigurationDto(RuleStrategyDto.DEFAULT_ALLOW, null), null);
+        final var deny = new RuleSetDto("default-deny", new RuleConfigurationDto(RuleStrategyDto.DEFAULT_DENY, null), null);
+        final var config = configOf(new SettingsDto("default-deny", null, null, null, null, null), List.of(allow, deny));
 
-        assertThat(config.ruleEngine()).isEqualTo(ruleEngine);
-    }
-
-    @Test
-    void shouldReturnStaticEnforcementWhenSettingsPresent() {
-        final var staticEnforcement = new StaticEnforcementDto(true, true, true, true, true);
-        final var config = configOf(new SettingsDto(null, staticEnforcement), null);
-
-        assertThat(config.staticEnforcement()).isEqualTo(staticEnforcement);
+        assertThat(config.activeRuleSet()).isEqualTo(deny);
     }
 }

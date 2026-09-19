@@ -1,10 +1,14 @@
 package io.github.march_plugin.configuration.initializer;
 
+import io.github.march_plugin.configuration.dto.MarchConfigDto;
+import io.github.march_plugin.configuration.dto.SettingsDto;
 import io.github.march_plugin.configuration.dto.rules.RuleConfigurationDto;
 import io.github.march_plugin.configuration.dto.rules.RuleDto;
+import io.github.march_plugin.configuration.dto.rules.RuleSetDto;
 import io.github.march_plugin.configuration.dto.rules.RuleStrategyDto;
 import io.github.march_plugin.configuration.dto.rules.ScopeStrategyDto;
 import io.github.march_plugin.configuration.dto.rules.ValidationScopeDto;
+import io.github.march_plugin.configuration.initializer.exception.UnresolvedActiveRuleSetException;
 import io.github.march_plugin.core.config.dimensions.model.Dimension;
 import io.github.march_plugin.core.config.rules.config.RuleStrategy;
 import io.github.march_plugin.core.config.rules.config.ScopeStrategy;
@@ -20,6 +24,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -144,6 +149,22 @@ class RuleRegistryInitializerTest {
     }
 
     @Test
+    void shouldNotLeakRulesBetweenRepeatedBuildCallsOnTheSameInitializer() {
+        when(compiler.compile("d1")).thenReturn(sampleAst());
+        when(compiler.compile("d2")).thenReturn(sampleAst());
+
+        // Building two registries from one initializer instance is exactly what comparing two rule sets for
+        // equivalence needs to do; the second call must not see the first call's rules or vice versa.
+        final var registryA = initializer.build(List.of(ruleDto("a", "d1", null)), configOf(RuleStrategyDto.DEFAULT_ALLOW));
+        final var registryB = initializer.build(List.of(ruleDto("b", "d2", null)), configOf(RuleStrategyDto.DEFAULT_DENY));
+
+        assertThat(registryA.getRules()).extracting(Rule::description).containsExactly("a");
+        assertThat(registryB.getRules()).extracting(Rule::description).containsExactly("b");
+        assertThat(registryA.getRuleStrategy()).isEqualTo(RuleStrategy.DEFAULT_ALLOW);
+        assertThat(registryB.getRuleStrategy()).isEqualTo(RuleStrategy.DEFAULT_DENY);
+    }
+
+    @Test
     void shouldReturnEmptyRegistryWhenRulesListIsNull() {
         final var registry = initializer.build(null, configOf(RuleStrategyDto.DEFAULT_DENY));
 
@@ -163,5 +184,50 @@ class RuleRegistryInitializerTest {
         final var registry = initializer.build(List.of(), configOf(null));
 
         assertThat(registry.getRuleStrategy()).isEqualTo(RuleStrategy.DEFAULT_DENY);
+    }
+
+    @Test
+    void buildActiveShouldReturnEmptyDefaultRegistryWhenNoRuleSetsDeclared() {
+        final var marchConfigDto = new MarchConfigDto(null, null, null, null, null, List.of());
+
+        final var registry = initializer.buildActive(marchConfigDto);
+
+        assertThat(registry.getRules()).isEmpty();
+        assertThat(registry.getRuleStrategy()).isEqualTo(RuleStrategy.DEFAULT_DENY);
+        assertThat(registry.getScopeStrategy()).isEqualTo(ScopeStrategy.MANUAL);
+    }
+
+    @Test
+    void buildActiveShouldResolveAndBuildTheNamedActiveRuleSet() {
+        when(compiler.compile(any())).thenReturn(sampleAst());
+
+        final var allow = new RuleSetDto("allow", configOf(RuleStrategyDto.DEFAULT_ALLOW), List.of(ruleDto("a", "d", null)));
+        final var deny = new RuleSetDto("deny", configOf(RuleStrategyDto.DEFAULT_DENY), List.of());
+        final var settings = new SettingsDto("deny", null, null, null, null, null);
+        final var marchConfigDto = new MarchConfigDto(null, null, null, null, settings, List.of(allow, deny));
+
+        final var registry = initializer.buildActive(marchConfigDto);
+
+        assertThat(registry.getRuleStrategy()).isEqualTo(RuleStrategy.DEFAULT_DENY);
+        assertThat(registry.getRules()).isEmpty();
+    }
+
+    @Test
+    void buildActiveShouldThrowWhenActiveRuleSetIsMissingButRuleSetsAreDeclared() {
+        final var allow = new RuleSetDto("allow", configOf(RuleStrategyDto.DEFAULT_ALLOW), List.of());
+        final var marchConfigDto = new MarchConfigDto(null, null, null, null, null, List.of(allow));
+
+        assertThatThrownBy(() -> initializer.buildActive(marchConfigDto))
+                .isInstanceOf(UnresolvedActiveRuleSetException.class);
+    }
+
+    @Test
+    void buildActiveShouldThrowWhenActiveRuleSetNameDoesNotMatchAnyDeclaredRuleSet() {
+        final var allow = new RuleSetDto("allow", configOf(RuleStrategyDto.DEFAULT_ALLOW), List.of());
+        final var settings = new SettingsDto("typo", null, null, null, null, null);
+        final var marchConfigDto = new MarchConfigDto(null, null, null, null, settings, List.of(allow));
+
+        assertThatThrownBy(() -> initializer.buildActive(marchConfigDto))
+                .isInstanceOf(UnresolvedActiveRuleSetException.class);
     }
 }
