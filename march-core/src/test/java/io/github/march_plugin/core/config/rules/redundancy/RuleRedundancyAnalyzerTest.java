@@ -348,6 +348,38 @@ class RuleRedundancyAnalyzerTest {
     }
 
     @Test
+    void moduleContextIgnoresCombinationsOnlyReachableThroughAPackage() {
+        // Same tree as treeRestrictionAppliesAtThePackageLevelToo: layer_kind is classified by package
+        // modularities nested under the "domain" module. No real module is ever classified by layer_kind,
+        // only packages beneath domainModule are.
+        final var componentBuilder = new Dimension.Builder("component");
+        final var domainPart = componentBuilder.addPartition("domain");
+        final var utilPart = componentBuilder.addPartition("util");
+        final var componentDim = componentBuilder.build();
+
+        final var layerKindBuilder = new Dimension.Builder("layer_kind");
+        final var apiPart = layerKindBuilder.addPartition("api");
+        layerKindBuilder.addPartition("impl");
+        final var layerKindDim = layerKindBuilder.build();
+
+        final var root = new ModuleModularity.Builder(componentDim, convention()).buildAsRoot();
+        final var domainModule = new ModuleModularity.Builder(layerKindDim, convention())
+                .setCasePartitions(caseOf(domainPart))
+                .buildAsChild(root);
+        new PackageModularity.Builder(null, packageConvention()).setCasePartitions(caseOf(apiPart)).buildAsChild(domainModule);
+        new ModuleModularity.Builder(null, convention()).setCasePartitions(caseOf(utilPart)).buildAsChild(root);
+
+        // MODULE_ONLY, so only the module context decides reachability here.
+        final var moduleOnlyRule = new Rule("module-only", comparisonWrap(new ComparisonExpression.Equal(targetOf(layerKindDim), new PartitionExpression.Fixed(apiPart))), Rule.RuleScope.MODULE_ONLY);
+
+        final var unreachable = analyzer.findUnreachableRules(List.of(moduleOnlyRule), root, ScopeStrategy.MANUAL);
+
+        // No real module is ever classified by layer_kind, only packages under domainModule are, so this
+        // MODULE_ONLY rule can never actually fire on a real module dependency and must be unreachable.
+        assertThat(unreachable).containsExactly(moduleOnlyRule);
+    }
+
+    @Test
     void flagsAContradictoryRuleAsUnreachableEvenWithoutATree() {
         // target.layer == service AND target.layer == ui can never both hold: a component has exactly
         // one classification per dimension.
