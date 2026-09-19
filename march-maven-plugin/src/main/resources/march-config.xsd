@@ -21,20 +21,8 @@
     <!-- ================= settings ================= -->
 
     <xs:complexType name="settingsType">
-        <xs:annotation>
-            <xs:documentation>Everything that is not part of the rule sets themselves. Optional - omitting
-                it, or any element inside it, falls back to defaults (no active rule set, all-checks-on-except-
-                forbidExclusions for static enforcement).</xs:documentation>
-        </xs:annotation>
         <xs:all>
-            <xs:element name="activeRuleSet" type="xs:string" minOccurs="0">
-                <xs:annotation>
-                    <xs:documentation>The name of the ruleSet (see rulesType/ruleSetType below) actually
-                        enforced at build time. Required if any ruleSet is declared, ignored otherwise.
-                        Every other declared ruleSet is still checked by march:config-check, but not
-                        enforced.</xs:documentation>
-                </xs:annotation>
-            </xs:element>
+            <xs:element name="activeRuleSet" type="xs:string" minOccurs="0"/>
             <xs:element name="requireManagedVersion" type="xs:boolean" minOccurs="0"/>
             <xs:element name="forbidInlineVersion" type="xs:boolean" minOccurs="0"/>
             <xs:element name="forbidInlineScope" type="xs:boolean" minOccurs="0"/>
@@ -47,6 +35,7 @@
         <xs:all>
             <xs:element name="ruleStrategy" type="ruleStrategyType" minOccurs="0"/>
             <xs:element name="scopeStrategy" type="scopeStrategyType" minOccurs="0"/>
+            <xs:element name="dependencyConfig" type="dependencyConfigType" minOccurs="0"/>
         </xs:all>
     </xs:complexType>
 
@@ -61,6 +50,13 @@
         <xs:restriction base="xs:string">
             <xs:enumeration value="AUTOMATIC"/>
             <xs:enumeration value="MANUAL"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="dependencyConfigType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="ANY_LEVEL"/>
+            <xs:enumeration value="LEAVES_ONLY"/>
         </xs:restriction>
     </xs:simpleType>
 
@@ -102,10 +98,6 @@
     </xs:complexType>
 
     <xs:complexType name="modularityType">
-        <xs:annotation>
-            <xs:documentation>An abstract, module-level naming-convention node. Attribute values may
-                reference ${placeholder} names bound by ancestor dimension/case attributes.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:element name="modularity" type="modularityType" minOccurs="0" maxOccurs="unbounded"/>
             <xs:element name="packageModularity" type="packageModularityType" minOccurs="0" maxOccurs="unbounded"/>
@@ -119,10 +111,6 @@
     </xs:complexType>
 
     <xs:complexType name="packageModularityType">
-        <xs:annotation>
-            <xs:documentation>Same shape as modularity, but for package-level (not module-level)
-                naming conventions.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:element name="packageModularity" type="packageModularityType" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
@@ -165,10 +153,6 @@
     </xs:complexType>
 
     <xs:complexType name="moduleType">
-        <xs:annotation>
-            <xs:documentation>A concrete, real Maven module, matching a module actually on disk (unlike
-                the abstract naming templates under projectStructure).</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:element name="module" type="moduleType" minOccurs="0" maxOccurs="unbounded"/>
             <xs:element name="packageTemplate" type="packageTemplateRefType" minOccurs="0"/>
@@ -181,18 +165,10 @@
     </xs:complexType>
 
     <xs:complexType name="packageTemplateRefType">
-        <xs:annotation>
-            <xs:documentation>References a packageTemplate declared under the top-level packageTemplates
-                by name, applying its package shape to this module.</xs:documentation>
-        </xs:annotation>
         <xs:attribute name="name" type="xs:string" use="required"/>
     </xs:complexType>
 
     <xs:complexType name="virtualModuleType">
-        <xs:annotation>
-            <xs:documentation>Groups a set of real, external (third-party) dependencies so they can be
-                classified together as if they were one module.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:element name="virtualModule" type="virtualModuleType" minOccurs="0" maxOccurs="unbounded"/>
             <xs:element name="virtualModuleRef" type="virtualModuleRefType" minOccurs="0" maxOccurs="unbounded"/>
@@ -204,10 +180,6 @@
     </xs:complexType>
 
     <xs:complexType name="virtualModuleRefType">
-        <xs:annotation>
-            <xs:documentation>One real (groupId/artifactId) external dependency mapped into the
-                enclosing virtualModule.</xs:documentation>
-        </xs:annotation>
         <xs:attribute name="groupId" type="xs:string"/>
         <xs:attribute name="artifactId" type="xs:string"/>
         <xs:attribute name="partition" type="xs:string"/>
@@ -224,13 +196,6 @@
     </xs:complexType>
 
     <xs:complexType name="ruleSetType">
-        <xs:annotation>
-            <xs:documentation>One formulation of the architecture policy: its own DEFAULT-ALLOW/DEFAULT-DENY
-                rule strategy and scope strategy, plus the rules that implement it. Multiple ruleSets sharing
-                one dimensions/projectStructure can be checked against each other for equivalence by
-                march:equivalence-check; exactly one must be named by settings/activeRuleSet to actually be
-                enforced at build time.</xs:documentation>
-        </xs:annotation>
         <xs:sequence>
             <xs:element name="config" type="configType" minOccurs="0"/>
             <xs:element name="rules" type="ruleListType" minOccurs="0"/>

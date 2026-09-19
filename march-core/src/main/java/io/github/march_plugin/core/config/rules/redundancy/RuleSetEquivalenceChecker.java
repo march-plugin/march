@@ -2,6 +2,7 @@ package io.github.march_plugin.core.config.rules.redundancy;
 
 import io.github.march_plugin.core.config.dimensions.model.Dimension;
 import io.github.march_plugin.core.config.projectstructure.model.ModuleModularity;
+import io.github.march_plugin.core.config.rules.config.DependencyConfig;
 import io.github.march_plugin.core.config.rules.config.RuleStrategy;
 import io.github.march_plugin.core.config.rules.config.ScopeStrategy;
 import io.github.march_plugin.core.config.rules.model.Rule;
@@ -30,10 +31,11 @@ public final class RuleSetEquivalenceChecker {
      * @param ruleStrategyB         {@code rulesB}'s configured rule strategy
      * @param scopeStrategyA        {@code rulesA}'s configured scope strategy
      * @param scopeStrategyB        {@code rulesB}'s configured scope strategy
+     * @param dependencyConfig      whether possible dependencies are restricted to leaves only
      * @return {@code true} if no classification exists where the two rule sets would disagree
      */
-    public boolean areEquivalent(final List<Rule> rulesA, final List<Rule> rulesB, final ModuleModularity projectStructureRoot, final RuleStrategy ruleStrategyA, final RuleStrategy ruleStrategyB, final ScopeStrategy scopeStrategyA, final ScopeStrategy scopeStrategyB) {
-        return findDisagreement(rulesA, rulesB, projectStructureRoot, ruleStrategyA, ruleStrategyB, scopeStrategyA, scopeStrategyB, DependencyConfig.ANY_LEVEL).isEmpty();
+    public boolean areEquivalent(final List<Rule> rulesA, final List<Rule> rulesB, final ModuleModularity projectStructureRoot, final RuleStrategy ruleStrategyA, final RuleStrategy ruleStrategyB, final ScopeStrategy scopeStrategyA, final ScopeStrategy scopeStrategyB, final DependencyConfig dependencyConfig) {
+        return findDisagreement(rulesA, rulesB, projectStructureRoot, ruleStrategyA, ruleStrategyB, scopeStrategyA, scopeStrategyB, dependencyConfig).isEmpty();
     }
 
     /**

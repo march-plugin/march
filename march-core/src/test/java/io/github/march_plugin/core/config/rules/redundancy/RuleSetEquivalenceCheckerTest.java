@@ -1,6 +1,7 @@
 package io.github.march_plugin.core.config.rules.redundancy;
 
 import io.github.march_plugin.core.config.dimensions.model.Dimension;
+import io.github.march_plugin.core.config.rules.config.DependencyConfig;
 import io.github.march_plugin.core.config.rules.config.RuleStrategy;
 import io.github.march_plugin.core.config.rules.config.ScopeStrategy;
 import io.github.march_plugin.core.config.rules.model.Rule;

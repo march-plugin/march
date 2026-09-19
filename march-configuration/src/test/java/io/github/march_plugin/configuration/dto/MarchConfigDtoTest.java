@@ -38,7 +38,7 @@ class MarchConfigDtoTest {
 
     @Test
     void shouldReturnNullActiveRuleSetWhenNameDoesNotMatchAnyDeclaredRuleSet() {
-        final var ruleSet = new RuleSetDto("default-allow", new RuleConfigurationDto(RuleStrategyDto.DEFAULT_ALLOW, null), null);
+        final var ruleSet = new RuleSetDto("default-allow", new RuleConfigurationDto(RuleStrategyDto.DEFAULT_ALLOW, null, null), null);
         final var config = configOf(new SettingsDto("typo", null, null, null, null, null), List.of(ruleSet));
 
         assertThat(config.activeRuleSet()).isNull();
@@ -46,8 +46,8 @@ class MarchConfigDtoTest {
 
     @Test
     void shouldResolveActiveRuleSetByName() {
-        final var allow = new RuleSetDto("default-allow", new RuleConfigurationDto(RuleStrategyDto.DEFAULT_ALLOW, null), null);
-        final var deny = new RuleSetDto("default-deny", new RuleConfigurationDto(RuleStrategyDto.DEFAULT_DENY, null), null);
+        final var allow = new RuleSetDto("default-allow", new RuleConfigurationDto(RuleStrategyDto.DEFAULT_ALLOW, null, null), null);
+        final var deny = new RuleSetDto("default-deny", new RuleConfigurationDto(RuleStrategyDto.DEFAULT_DENY, null, null), null);
         final var config = configOf(new SettingsDto("default-deny", null, null, null, null, null), List.of(allow, deny));
 
         assertThat(config.activeRuleSet()).isEqualTo(deny);

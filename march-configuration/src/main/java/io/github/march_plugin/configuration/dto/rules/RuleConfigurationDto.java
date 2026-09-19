@@ -2,6 +2,7 @@ package io.github.march_plugin.configuration.dto.rules;
 
 public record RuleConfigurationDto(
         RuleStrategyDto ruleStrategy,
-        ScopeStrategyDto scopeStrategy
+        ScopeStrategyDto scopeStrategy,
+        DependencyConfigDto dependencyConfig
 ) {
 }

@@ -1,4 +1,4 @@
-package io.github.march_plugin.core.config.rules.redundancy;
+package io.github.march_plugin.core.config.rules.config;
 
 /**
  * Configures if only leaf components may depend on each other.

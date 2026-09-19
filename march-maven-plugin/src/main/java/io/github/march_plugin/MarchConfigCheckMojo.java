@@ -53,9 +53,10 @@ public class MarchConfigCheckMojo extends AbstractMojo {
             final var analyzer = new RuleRedundancyAnalyzer();
             final var allRules = ruleRegistry.getRules();
             final var scopeStrategy = ruleRegistry.getScopeStrategy();
-            final var unreachableRules = analyzer.findUnreachableRules(allRules, projectStructureRoot, scopeStrategy);
+            final var dependencyConfig = ruleRegistry.getDependencyConfig();
+            final var unreachableRules = analyzer.findUnreachableRules(allRules, projectStructureRoot, scopeStrategy, dependencyConfig);
             final var rulesToCheck = allRules.stream().filter(rule -> !unreachableRules.contains(rule)).toList();
-            final var redundantRules = analyzer.findRedundantRules(rulesToCheck, projectStructureRoot, scopeStrategy);
+            final var redundantRules = analyzer.findRedundantRules(rulesToCheck, projectStructureRoot, scopeStrategy, dependencyConfig);
 
             getLog().info("");
             getLog().info(MessageUtils.buffer().strong("March Config Check").build());

@@ -2,6 +2,7 @@ package io.github.march_plugin.core.config.rules.redundancy;
 
 import io.github.march_plugin.core.config.dimensions.model.Dimension;
 import io.github.march_plugin.core.config.projectstructure.model.ModuleModularity;
+import io.github.march_plugin.core.config.rules.config.DependencyConfig;
 import io.github.march_plugin.core.config.rules.model.Rule;
 import io.github.march_plugin.core.config.rules.model.ast.PartitionExpression;
 import org.sat4j.specs.ISolver;

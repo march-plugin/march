@@ -4,6 +4,7 @@ import io.github.march_plugin.configuration.dto.MarchConfigDto;
 import io.github.march_plugin.configuration.dto.rules.RuleConfigurationDto;
 import io.github.march_plugin.configuration.dto.rules.RuleDto;
 import io.github.march_plugin.configuration.initializer.exception.UnresolvedActiveRuleSetException;
+import io.github.march_plugin.core.config.rules.config.DependencyConfig;
 import io.github.march_plugin.core.config.rules.config.RuleRegistry;
 import io.github.march_plugin.core.config.rules.config.RuleStrategy;
 import io.github.march_plugin.core.config.rules.config.ScopeStrategy;
@@ -75,6 +76,12 @@ public class RuleRegistryInitializer {
         ruleRegistryBuilder.setScopeStrategy(scopeStrategyDto == null ? ScopeStrategy.MANUAL : switch (scopeStrategyDto) {
             case AUTOMATIC -> ScopeStrategy.AUTOMATIC;
             case MANUAL -> ScopeStrategy.MANUAL;
+        });
+
+        final var dependencyConfigDto = ruleConfigurationDto == null ? null : ruleConfigurationDto.dependencyConfig();
+        ruleRegistryBuilder.setDependencyConfig(dependencyConfigDto == null ? DependencyConfig.LEAVES_ONLY : switch (dependencyConfigDto) {
+            case ANY_LEVEL -> DependencyConfig.ANY_LEVEL;
+            case LEAVES_ONLY -> DependencyConfig.LEAVES_ONLY;
         });
     }
 

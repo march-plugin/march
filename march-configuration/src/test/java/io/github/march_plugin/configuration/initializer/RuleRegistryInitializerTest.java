@@ -35,11 +35,11 @@ class RuleRegistryInitializerTest {
     private final RuleRegistryInitializer initializer = new RuleRegistryInitializer(compiler);
 
     private static RuleConfigurationDto configOf(final RuleStrategyDto strategy) {
-        return new RuleConfigurationDto(strategy, null);
+        return new RuleConfigurationDto(strategy, null, null);
     }
 
     private static RuleConfigurationDto configOf(final RuleStrategyDto strategy, final ScopeStrategyDto scopeStrategy) {
-        return new RuleConfigurationDto(strategy, scopeStrategy);
+        return new RuleConfigurationDto(strategy, scopeStrategy, null);
     }
 
     private static RuleDto ruleDto(final String description, final String definition, final ValidationScopeDto scope) {

@@ -6,10 +6,10 @@ import io.github.march_plugin.configuration.initializer.DimensionRegistryInitial
 import io.github.march_plugin.configuration.initializer.ProjectStructureInitializer;
 import io.github.march_plugin.configuration.initializer.RuleRegistryInitializer;
 import io.github.march_plugin.core.config.dimensions.model.Dimension;
+import io.github.march_plugin.core.config.rules.config.DependencyConfig;
 import io.github.march_plugin.core.config.rules.model.Rule;
 import io.github.march_plugin.core.config.rules.model.ast.PartitionExpression;
 import io.github.march_plugin.core.config.rules.parser.RuleDefinitionCompiler;
-import io.github.march_plugin.core.config.rules.redundancy.DependencyConfig;
 import io.github.march_plugin.core.config.rules.redundancy.RuleSetEquivalenceChecker;
 import io.github.march_plugin.core.exceptions.MarchViolationException;
 import org.apache.maven.plugin.AbstractMojo;
@@ -76,11 +76,12 @@ public class MarchEquivalenceCheckMojo extends AbstractMojo {
             for (final var pair : pairs) {
                 final var registryA = registryInitializer.build(pair.a().rules(), pair.a().config());
                 final var registryB = registryInitializer.build(pair.b().rules(), pair.b().config());
+                final var dependencyConfig = resolveDependencyConfig(pair.a().name(), registryA.getDependencyConfig(), pair.b().name(), registryB.getDependencyConfig());
 
                 final var disagreement = new RuleSetEquivalenceChecker().findDisagreement(
                         registryA.getRules(), registryB.getRules(), projectStructureRoot,
                         registryA.getRuleStrategy(), registryB.getRuleStrategy(),
-                        registryA.getScopeStrategy(), registryB.getScopeStrategy(), DependencyConfig.ANY_LEVEL);
+                        registryA.getScopeStrategy(), registryB.getScopeStrategy(), dependencyConfig);
 
                 if (disagreement.isEmpty()) {
                     getLog().info("'%s' and '%s' are equivalent.".formatted(pair.a().name(), pair.b().name()));
@@ -146,6 +147,14 @@ public class MarchEquivalenceCheckMojo extends AbstractMojo {
             }
         }
         return pairs;
+    }
+
+    private DependencyConfig resolveDependencyConfig(final String nameA, final DependencyConfig dependencyConfigA, final String nameB, final DependencyConfig dependencyConfigB) throws MojoExecutionException {
+        if (dependencyConfigA != dependencyConfigB) {
+            throw new MojoExecutionException("Rule sets '%s' (%s) and '%s' (%s) declare different dependencyConfig settings; they must agree to be compared.".formatted(
+                    nameA, dependencyConfigA, nameB, dependencyConfigB));
+        }
+        return dependencyConfigA;
     }
 
     private RuleSetDto findByName(final List<RuleSetDto> declaredRuleSets, final String name) throws MojoExecutionException {

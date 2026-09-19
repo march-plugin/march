@@ -14,11 +14,13 @@ public final class RuleRegistry {
     private final List<Rule> rules;
     private final RuleStrategy ruleStrategy;
     private final ScopeStrategy scopeStrategy;
+    private final DependencyConfig dependencyConfig;
 
-    private RuleRegistry(final List<Rule> rules, final RuleStrategy ruleStrategy, final ScopeStrategy scopeStrategy) {
+    private RuleRegistry(final List<Rule> rules, final RuleStrategy ruleStrategy, final ScopeStrategy scopeStrategy, final DependencyConfig dependencyConfig) {
         this.rules = Collections.unmodifiableList(rules);
         this.ruleStrategy = ruleStrategy;
         this.scopeStrategy = scopeStrategy;
+        this.dependencyConfig = dependencyConfig;
     }
 
     /**
@@ -48,10 +50,20 @@ public final class RuleRegistry {
         return scopeStrategy;
     }
 
+    /**
+     * Gets the dependency config.
+     *
+     * @return the dependency config
+     */
+    public DependencyConfig getDependencyConfig() {
+        return dependencyConfig;
+    }
+
     public static class Builder {
         private final List<Rule> rules = new ArrayList<>();
         private RuleStrategy ruleStrategy;
         private ScopeStrategy scopeStrategy = ScopeStrategy.MANUAL;
+        private DependencyConfig dependencyConfig = DependencyConfig.LEAVES_ONLY;
 
         /**
          * Adds a rule to the registry.
@@ -81,12 +93,21 @@ public final class RuleRegistry {
         }
 
         /**
+         * Sets the dependency config.
+         *
+         * @param dependencyConfig the dependency config
+         */
+        public void setDependencyConfig(final DependencyConfig dependencyConfig) {
+            this.dependencyConfig = dependencyConfig;
+        }
+
+        /**
          * Builds the rule registry.
          *
          * @return the built registry
          */
         public RuleRegistry build() {
-            return new RuleRegistry(rules, ruleStrategy, scopeStrategy);
+            return new RuleRegistry(rules, ruleStrategy, scopeStrategy, dependencyConfig);
         }
     }
 }
