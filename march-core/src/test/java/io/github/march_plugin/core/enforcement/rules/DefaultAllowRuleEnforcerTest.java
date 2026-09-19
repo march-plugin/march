@@ -6,12 +6,14 @@ import io.github.march_plugin.core.config.classification.model.ClassifiedPackage
 import io.github.march_plugin.core.config.classification.model.PackageClassification;
 import io.github.march_plugin.core.config.dimensions.model.Dimension;
 import io.github.march_plugin.core.config.projectstructure.model.PackageHierarchy;
+import io.github.march_plugin.core.config.rules.config.DependencyConfig;
 import io.github.march_plugin.core.config.rules.config.RuleRegistry;
 import io.github.march_plugin.core.config.rules.config.ScopeStrategy;
 import io.github.march_plugin.core.enforcement.dependencies.PackageDependencyEvaluationResult;
 import io.github.march_plugin.core.enforcement.dependencies.PackageDependencyEvaluator;
 import io.github.march_plugin.core.config.rules.evaluation.RuleEvaluator;
 import io.github.march_plugin.core.enforcement.rules.exceptions.DependencyForbiddenException;
+import io.github.march_plugin.core.enforcement.rules.exceptions.NonLeafMavenDependencyException;
 import io.github.march_plugin.core.enforcement.rules.exceptions.PackageDependencyForbiddenException;
 import io.github.march_plugin.core.project.MavenDependency;
 import io.github.march_plugin.core.project.ProjectModuleRegistry;
@@ -283,6 +285,12 @@ class DefaultAllowRuleEnforcerTest {
 
     private static void invokeEnforceRules(final RuleEnforcer enforcer, final Set<MavenDependency> dependencies,
                                             final Collection<PackageClassification> packages, final List<Rule> rules) {
+        invokeEnforceRules(enforcer, dependencies, packages, rules, null);
+    }
+
+    private static void invokeEnforceRules(final RuleEnforcer enforcer, final Set<MavenDependency> dependencies,
+                                            final Collection<PackageClassification> packages, final List<Rule> rules,
+                                            final DependencyConfig dependencyConfig) {
         final var classificationRegistry = mock(ClassificationRegistry.class);
         final var projectModuleRegistry = mock(ProjectModuleRegistry.class);
         final var ruleRegistry = mock(RuleRegistry.class);
@@ -296,8 +304,22 @@ class DefaultAllowRuleEnforcerTest {
         when(projectModuleRegistry.getDependencies(classificationRegistry)).thenReturn(dependencies);
         when(classificationRegistry.getAllClassifiedPackages()).thenReturn(classifiedPackages);
         when(ruleRegistry.getRules()).thenReturn(rules);
+        when(ruleRegistry.getDependencyConfig()).thenReturn(dependencyConfig);
 
         enforcer.enforceRules(classificationRegistry, projectModuleRegistry, ruleRegistry);
+    }
+
+    @Nested
+    class LeavesOnlyEnforcement {
+
+        @Test
+        void shouldForbidNonLeafDependencyEvenThoughDefaultAllowWouldOtherwiseAllowIt() {
+            final var enforcer = new DefaultAllowRuleEnforcer(packageDependencyEvaluator, ScopeStrategy.MANUAL);
+            final var dependency = new MavenDependency(mockClassification(domainA), mockClassification(domainB), false, true, "a -> b");
+
+            assertThrows(NonLeafMavenDependencyException.class,
+                    () -> invokeEnforceRules(enforcer, Set.of(dependency), List.of(), List.of(), DependencyConfig.LEAVES_ONLY));
+        }
     }
 
     private static class TestableDefaultAllowRuleEnforcer extends DefaultAllowRuleEnforcer {

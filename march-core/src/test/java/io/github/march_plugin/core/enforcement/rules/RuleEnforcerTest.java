@@ -5,6 +5,8 @@ import io.github.march_plugin.core.config.classification.model.ClassificationReg
 import io.github.march_plugin.core.config.classification.model.ClassifiedPackage;
 import io.github.march_plugin.core.config.classification.model.PackageClassification;
 import io.github.march_plugin.core.config.dimensions.model.Dimension;
+import io.github.march_plugin.core.config.projectstructure.model.PackageHierarchy;
+import io.github.march_plugin.core.config.rules.config.DependencyConfig;
 import io.github.march_plugin.core.config.rules.config.RuleRegistry;
 import io.github.march_plugin.core.config.rules.config.ScopeStrategy;
 import io.github.march_plugin.core.config.rules.model.ast.ComparisonExpression;
@@ -13,10 +15,13 @@ import io.github.march_plugin.core.config.rules.model.ast.PartitionExpression;
 import io.github.march_plugin.core.enforcement.dependencies.ForbiddenDependency;
 import io.github.march_plugin.core.enforcement.dependencies.PackageDependencyEvaluationResult;
 import io.github.march_plugin.core.enforcement.dependencies.PackageDependencyEvaluator;
+import io.github.march_plugin.core.enforcement.rules.exceptions.NonLeafMavenDependencyException;
+import io.github.march_plugin.core.enforcement.rules.exceptions.NonLeafPackageDependencyException;
 import io.github.march_plugin.core.project.MavenDependency;
 import io.github.march_plugin.core.project.ProjectModuleRegistry;
 import io.github.march_plugin.core.config.rules.model.Rule;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -26,6 +31,8 @@ import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -118,6 +125,12 @@ class RuleEnforcerTest {
 
     private static void invokeEnforceRules(final RuleEnforcer enforcer, final Set<MavenDependency> dependencies,
                                             final Collection<PackageClassification> packages, final List<Rule> rules) {
+        invokeEnforceRules(enforcer, dependencies, packages, rules, null);
+    }
+
+    private static void invokeEnforceRules(final RuleEnforcer enforcer, final Set<MavenDependency> dependencies,
+                                            final Collection<PackageClassification> packages, final List<Rule> rules,
+                                            final DependencyConfig dependencyConfig) {
         final var classificationRegistry = mock(ClassificationRegistry.class);
         final var projectModuleRegistry = mock(ProjectModuleRegistry.class);
         final var ruleRegistry = mock(RuleRegistry.class);
@@ -131,8 +144,84 @@ class RuleEnforcerTest {
         when(projectModuleRegistry.getDependencies(classificationRegistry)).thenReturn(dependencies);
         when(classificationRegistry.getAllClassifiedPackages()).thenReturn(classifiedPackages);
         when(ruleRegistry.getRules()).thenReturn(rules);
+        when(ruleRegistry.getDependencyConfig()).thenReturn(dependencyConfig);
 
         enforcer.enforceRules(classificationRegistry, projectModuleRegistry, ruleRegistry);
+    }
+
+    @Nested
+    class EnforceLeavesOnly {
+
+        private static PackageClassification mockPackage(final String path, final boolean isLeaf) {
+            final var classification = mock(Classification.class);
+            final var hierarchy = new PackageHierarchy(List.of(path.split("\\.")));
+            return new PackageClassification(classification, hierarchy, isLeaf);
+        }
+
+        @Test
+        void shouldThrowWhenMavenDependencySourceIsNonLeaf() {
+            final var dependency = new MavenDependency(null, null, false, true, "desc");
+
+            assertThatThrownBy(() -> invokeEnforceRules(enforcer, Set.of(dependency), List.of(), List.of(), DependencyConfig.LEAVES_ONLY))
+                    .isInstanceOf(NonLeafMavenDependencyException.class);
+        }
+
+        @Test
+        void shouldThrowWhenMavenDependencyTargetIsNonLeaf() {
+            final var dependency = new MavenDependency(null, null, true, false, "desc");
+
+            assertThatThrownBy(() -> invokeEnforceRules(enforcer, Set.of(dependency), List.of(), List.of(), DependencyConfig.LEAVES_ONLY))
+                    .isInstanceOf(NonLeafMavenDependencyException.class);
+        }
+
+        @Test
+        void shouldNotThrowWhenBothMavenDependencySidesAreLeaves() {
+            final var dependency = new MavenDependency(null, null, true, true, "desc");
+
+            assertThatCode(() -> invokeEnforceRules(enforcer, Set.of(dependency), List.of(), List.of(), DependencyConfig.LEAVES_ONLY))
+                    .doesNotThrowAnyException();
+        }
+
+        @Test
+        void shouldNotEnforceLeavesOnlyWhenDependencyConfigIsAnyLevel() {
+            final var dependency = new MavenDependency(null, null, false, false, "desc");
+
+            assertThatCode(() -> invokeEnforceRules(enforcer, Set.of(dependency), List.of(), List.of(), DependencyConfig.ANY_LEVEL))
+                    .doesNotThrowAnyException();
+        }
+
+        @Test
+        void shouldThrowWhenANonLeafPackagePairHasARealBytecodeDependency() {
+            final var source = mockPackage("a", false);
+            final var target = mockPackage("b", true);
+            when(evaluator.evaluateForbiddenDependency(new ForbiddenDependency(source, target, null)))
+                    .thenReturn(new PackageDependencyEvaluationResult(true, "detail"));
+
+            assertThatThrownBy(() -> invokeEnforceRules(enforcer, Set.of(), List.of(source, target), List.of(), DependencyConfig.LEAVES_ONLY))
+                    .isInstanceOf(NonLeafPackageDependencyException.class);
+        }
+
+        @Test
+        void shouldNotThrowWhenANonLeafPackagePairHasNoRealBytecodeDependency() {
+            final var source = mockPackage("a", false);
+            final var target = mockPackage("b", true);
+            when(evaluator.evaluateForbiddenDependency(new ForbiddenDependency(source, target, null)))
+                    .thenReturn(new PackageDependencyEvaluationResult(false, null));
+            when(evaluator.evaluateForbiddenDependency(new ForbiddenDependency(target, source, null)))
+                    .thenReturn(new PackageDependencyEvaluationResult(false, null));
+
+            assertThatCode(() -> invokeEnforceRules(enforcer, Set.of(), List.of(source, target), List.of(), DependencyConfig.LEAVES_ONLY))
+                    .doesNotThrowAnyException();
+        }
+
+        @Test
+        void shouldNotCheckPackagePairsWhereBothSidesAreLeaves() {
+            final var source = mockPackage("a", true);
+            final var target = mockPackage("b", true);
+
+            assertThatCode(() -> invokeEnforceRules(enforcer, Set.of(), List.of(source, target), List.of(), DependencyConfig.LEAVES_ONLY))
+                    .doesNotThrowAnyException();
+        }
     }
 
     private static class TestRuleEnforcer extends RuleEnforcer {
