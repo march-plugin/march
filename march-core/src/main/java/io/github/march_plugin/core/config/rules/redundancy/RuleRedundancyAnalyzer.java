@@ -1,6 +1,7 @@
 package io.github.march_plugin.core.config.rules.redundancy;
 
 import io.github.march_plugin.core.config.projectstructure.model.ModuleModularity;
+import io.github.march_plugin.core.config.rules.config.ScopeStrategy;
 import io.github.march_plugin.core.config.rules.model.Rule;
 import org.sat4j.core.VecInt;
 import org.sat4j.specs.ISolver;
@@ -22,17 +23,18 @@ public final class RuleRedundancyAnalyzer {
      *
      * @param rules                 the rules to analyze
      * @param projectStructureRoot  the modularity tree root, or {@code null} to leave every classification unrestricted
+     * @param scopeStrategy         the configured scope strategy
      * @return the rules found to be unreachable
      */
-    public List<Rule> findUnreachableRules(final List<Rule> rules, final ModuleModularity projectStructureRoot) {
-        final var moduleContext = effectiveRules(rules, Rule.RuleScope.MODULE_ONLY);
-        final var packageContext = effectiveRules(rules, Rule.RuleScope.PACKAGE_ONLY);
+    public List<Rule> findUnreachableRules(final List<Rule> rules, final ModuleModularity projectStructureRoot, final ScopeStrategy scopeStrategy) {
+        final var moduleContext = effectiveRules(rules, Rule.RuleScope.MODULE_ONLY, scopeStrategy);
+        final var packageContext = effectiveRules(rules, Rule.RuleScope.PACKAGE_ONLY, scopeStrategy);
 
         final var moduleUnreachable = unreachableWithin(moduleContext, projectStructureRoot);
         final var packageUnreachable = unreachableWithin(packageContext, projectStructureRoot);
 
         return rules.stream()
-                .filter(rule -> isInBoth(rule, moduleUnreachable, packageUnreachable))
+                .filter(rule -> isInBoth(rule, moduleUnreachable, packageUnreachable, scopeStrategy))
                 .toList();
     }
 
@@ -41,32 +43,45 @@ public final class RuleRedundancyAnalyzer {
      *
      * @param rulesToCheck          the rules to analyze
      * @param projectStructureRoot  the modularity tree root, or {@code null} to leave every classification unrestricted
+     * @param scopeStrategy         whether a {@code PACKAGE_ONLY} rule also applies at module level, see
+     *                              {@code RuleEnforcer#matchesAtModuleLevel}
      * @return the rules found to be redundant, in their original order
      */
-    public List<Rule> findRedundantRules(final List<Rule> rulesToCheck, final ModuleModularity projectStructureRoot) {
-        final var moduleContext = effectiveRules(rulesToCheck, Rule.RuleScope.MODULE_ONLY);
-        final var packageContext = effectiveRules(rulesToCheck, Rule.RuleScope.PACKAGE_ONLY);
+    public List<Rule> findRedundantRules(final List<Rule> rulesToCheck, final ModuleModularity projectStructureRoot, final ScopeStrategy scopeStrategy) {
+        final var moduleContext = effectiveRules(rulesToCheck, Rule.RuleScope.MODULE_ONLY, scopeStrategy);
+        final var packageContext = effectiveRules(rulesToCheck, Rule.RuleScope.PACKAGE_ONLY, scopeStrategy);
 
         final var redundantInModuleContext = redundantWithin(moduleContext, projectStructureRoot);
         final var redundantInPackageContext = redundantWithin(packageContext, projectStructureRoot);
 
         return rulesToCheck.stream()
-                .filter(rule -> isInBoth(rule, redundantInModuleContext, redundantInPackageContext))
+                .filter(rule -> isInBoth(rule, redundantInModuleContext, redundantInPackageContext, scopeStrategy))
                 .toList();
     }
 
-    private boolean isInBoth(final Rule rule, final Set<Rule> inModuleContext, final Set<Rule> inPackageContext) {
+    private boolean isInBoth(final Rule rule, final Set<Rule> inModuleContext, final Set<Rule> inPackageContext, final ScopeStrategy scopeStrategy) {
         return switch (rule.ruleScope()) {
             case MODULE_ONLY -> inModuleContext.contains(rule);
-            case PACKAGE_ONLY -> inPackageContext.contains(rule);
+            case PACKAGE_ONLY -> scopeStrategy == ScopeStrategy.AUTOMATIC
+                    ? inModuleContext.contains(rule) && inPackageContext.contains(rule)
+                    : inPackageContext.contains(rule);
             case GLOBAL -> inModuleContext.contains(rule) && inPackageContext.contains(rule);
         };
     }
 
-    private List<Rule> effectiveRules(final List<Rule> rules, final Rule.RuleScope scope) {
+    private List<Rule> effectiveRules(final List<Rule> rules, final Rule.RuleScope contextScope, final ScopeStrategy scopeStrategy) {
         return rules.stream()
-                .filter(rule -> rule.ruleScope() == Rule.RuleScope.GLOBAL || rule.ruleScope() == scope)
+                .filter(rule -> appliesInContext(rule, contextScope, scopeStrategy))
                 .toList();
+    }
+
+    private boolean appliesInContext(final Rule rule, final Rule.RuleScope contextScope, final ScopeStrategy scopeStrategy) {
+        if (rule.ruleScope() == Rule.RuleScope.GLOBAL || rule.ruleScope() == contextScope) {
+            return true;
+        }
+        return contextScope == Rule.RuleScope.MODULE_ONLY
+                && scopeStrategy == ScopeStrategy.AUTOMATIC
+                && rule.ruleScope() == Rule.RuleScope.PACKAGE_ONLY;
     }
 
     private Set<Rule> unreachableWithin(final List<Rule> rules, final ModuleModularity projectStructureRoot) {
