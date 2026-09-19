@@ -47,7 +47,7 @@ class RuleEnforcerTest {
         final var moduleRule = new Rule("Module Only", null, Rule.RuleScope.MODULE_ONLY);
 
         final var rules = List.of(globalRule, packageRule, moduleRule);
-        final var mavenDependency = new MavenDependency(null, null, "desc");
+        final var mavenDependency = new MavenDependency(null, null, true, true, "desc");
 
         invokeEnforceRules(enforcer, Set.of(mavenDependency), Collections.emptyList(), rules);
 

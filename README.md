@@ -266,12 +266,14 @@ By default a rule is checked against **both** the Maven module graph and the com
 - **`scopeStrategy`** controls if package rules affect module scope:
   - **`MANUAL`** (default): If a cross-module package dependency is needed, users must manually define a rule allowing the module dependency, mostly with `module_only` scope.
   - **`AUTOMATIC`**: If any cross-module package dependency is allowed, then the module dependency is automatically allowed too.
-- **`dependencyConfig`** controls whether redundancy, unreachability and equivalence checks
-  consider only leaf classifications, or every classification including aggregate
-  (not-yet-fully-classified) ones:
-  - **`LEAVES_ONLY`** (default): only real, fully classified modules/packages are considered.
-  - **`ANY_LEVEL`**: aggregate classifications (e.g. a domain module before it splits into
-    api/impl/client) are considered too.
+- **`dependencyConfig`** controls how non-leaf modules
+  and packages are treated:
+  - **`LEAVES_ONLY`** (default): any dependency to or from a non-leaf module or package is forbidden.
+  - **`ANY_LEVEL`**: non-leaf dependencies are governed by your rules like any other dependency.
+
+Comparing two rule sets with [`march:equivalence`](#marchequivalence) requires both to declare
+the same `dependencyConfig`; comparing under a different domain on each side would not be
+meaningful.
 
 Each `<rule>` has a `<definition>`: a boolean expression evaluated for every candidate
 dependency, where `source` is the dependent side and `target` is the thing being depended on.

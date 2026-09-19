@@ -96,7 +96,7 @@ class DefaultAllowRuleEnforcerTest {
         void enforceMavenViolationWhenRuleMatchesConcretely() {
             final var source = mockClassification(domainA);
             final var target = mockClassification(domainA);
-            final var mavenDependency = new MavenDependency(source, target, "test-artifact");
+            final var mavenDependency = new MavenDependency(source, target, true, true, "test-artifact");
             final var rule = new Rule("Forbidden Dep", sameDomainRule, null);
 
             assertThrows(DependencyForbiddenException.class, () ->
@@ -107,7 +107,7 @@ class DefaultAllowRuleEnforcerTest {
         void enforceMavenAllowedWhenRuleDoesNotMatch() {
             final var source = mockClassification(domainA);
             final var target = mockClassification(domainB);
-            final var mavenDependency = new MavenDependency(source, target, "test-artifact");
+            final var mavenDependency = new MavenDependency(source, target, true, true, "test-artifact");
             final var rule = new Rule("Forbidden Dep", sameDomainRule, null);
 
             assertDoesNotThrow(() ->
@@ -118,7 +118,7 @@ class DefaultAllowRuleEnforcerTest {
         void enforceMavenCorrectlyHandlesMissingDimension() {
             final var source = mockClassification(domainA);
             final var target = mockClassification(domainA);
-            final var mavenDependency = new MavenDependency(source, target, "test-artifact");
+            final var mavenDependency = new MavenDependency(source, target, true, true, "test-artifact");
             final var rule = new Rule("Forbid non-business (misscoped)", notBusinessLayerRule, null);
 
             assertDoesNotThrow(() ->
@@ -129,7 +129,7 @@ class DefaultAllowRuleEnforcerTest {
         void enforceMavenViolationWhenSecondRuleMatchesAfterFirstDoesNotMatch() {
             final var source = mockClassification(domainA);
             final var target = mockClassification(domainB);
-            final var mavenDependency = new MavenDependency(source, target, "test-artifact");
+            final var mavenDependency = new MavenDependency(source, target, true, true, "test-artifact");
             final var nonMatchingRule = new Rule("Same domain", sameDomainRule, null);
             final var matchingRule = new Rule("Different domain", differentDomainRule, null);
 
@@ -171,7 +171,7 @@ class DefaultAllowRuleEnforcerTest {
             final var realEnforcer = new DefaultAllowRuleEnforcer(packageDependencyEvaluator, ScopeStrategy.MANUAL);
             final var source = mockClassification(domainA);
             final var target = mockClassification(domainA);
-            final var mavenDependency = new MavenDependency(source, target, "test-artifact");
+            final var mavenDependency = new MavenDependency(source, target, true, true, "test-artifact");
             final var rule = new Rule("Same domain", sameDomainRule, Rule.RuleScope.GLOBAL);
 
             assertThrows(DependencyForbiddenException.class, () ->
@@ -183,7 +183,7 @@ class DefaultAllowRuleEnforcerTest {
             final var realEnforcer = new DefaultAllowRuleEnforcer(packageDependencyEvaluator, ScopeStrategy.MANUAL);
             final var source = mockClassification(domainA);
             final var target = mockClassification(domainB);
-            final var mavenDependency = new MavenDependency(source, target, "test-artifact");
+            final var mavenDependency = new MavenDependency(source, target, true, true, "test-artifact");
             final var rule = new Rule("Same domain", sameDomainRule, Rule.RuleScope.GLOBAL);
 
             assertDoesNotThrow(() ->
@@ -192,7 +192,7 @@ class DefaultAllowRuleEnforcerTest {
 
         @Test
         void enforceMavenNeverEvaluatesPackageOnlyRule() {
-            final var mavenDependency = new MavenDependency(mock(Classification.class), mock(Classification.class), "dep");
+            final var mavenDependency = new MavenDependency(mock(Classification.class), mock(Classification.class), true, true, "dep");
             final var rule = new Rule("Pkg Only", dummyExpression, Rule.RuleScope.PACKAGE_ONLY);
 
             invokeEnforceRules(enforcer, Set.of(mavenDependency), List.of(), List.of(rule));
@@ -205,7 +205,7 @@ class DefaultAllowRuleEnforcerTest {
             final var realEnforcer = new DefaultAllowRuleEnforcer(packageDependencyEvaluator, ScopeStrategy.MANUAL);
             final var source = mockClassification(domainA);
             final var target = mockClassification(domainA);
-            final var mavenDependency = new MavenDependency(source, target, "test-artifact");
+            final var mavenDependency = new MavenDependency(source, target, true, true, "test-artifact");
             final var rule = new Rule("Forbid non-business (misscoped)", notBusinessLayerRule, Rule.RuleScope.MODULE_ONLY);
 
             assertDoesNotThrow(() ->
