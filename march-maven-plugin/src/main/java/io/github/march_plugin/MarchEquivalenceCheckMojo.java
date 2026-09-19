@@ -63,7 +63,7 @@ public class MarchEquivalenceCheckMojo extends AbstractMojo {
             final var marchConfigDto = new MarchConfigFileReader(configFile).readConfig();
             final var declaredRuleSets = marchConfigDto.rules();
 
-            final var pairs = resolvePairs(declaredRuleSets);
+            final var pairs = resolvePairs(sets, configFile, declaredRuleSets);
 
             final var dimensionRegistry = new DimensionRegistryInitializer().build(marchConfigDto.dimensions());
             final var projectStructureRoot = new ProjectStructureInitializer(dimensionRegistry).build(marchConfigDto.projectStructure());
@@ -127,13 +127,13 @@ public class MarchEquivalenceCheckMojo extends AbstractMojo {
                 .collect(Collectors.joining(", "));
     }
 
-    private List<RuleSetPair> resolvePairs(final List<RuleSetDto> declaredRuleSets) throws MojoExecutionException {
+    static List<RuleSetPair> resolvePairs(final String sets, final File configFile, final List<RuleSetDto> declaredRuleSets) throws MojoExecutionException {
         if (sets != null) {
             final var names = sets.split(";");
             if (names.length != 2) {
                 throw new MojoExecutionException("march.sets must name exactly two rule sets separated by ';' (e.g. 'default-allow;default-deny'), got '%s'.".formatted(sets));
             }
-            return List.of(new RuleSetPair(findByName(declaredRuleSets, names[0]), findByName(declaredRuleSets, names[1])));
+            return List.of(new RuleSetPair(findByName(declaredRuleSets, names[0], configFile), findByName(declaredRuleSets, names[1], configFile)));
         }
 
         if (declaredRuleSets.size() < 2) {
@@ -149,7 +149,7 @@ public class MarchEquivalenceCheckMojo extends AbstractMojo {
         return pairs;
     }
 
-    private DependencyConfig resolveDependencyConfig(final String nameA, final DependencyConfig dependencyConfigA, final String nameB, final DependencyConfig dependencyConfigB) throws MojoExecutionException {
+    static DependencyConfig resolveDependencyConfig(final String nameA, final DependencyConfig dependencyConfigA, final String nameB, final DependencyConfig dependencyConfigB) throws MojoExecutionException {
         if (dependencyConfigA != dependencyConfigB) {
             throw new MojoExecutionException("Rule sets '%s' (%s) and '%s' (%s) declare different dependencyConfig settings; they must agree to be compared.".formatted(
                     nameA, dependencyConfigA, nameB, dependencyConfigB));
@@ -157,7 +157,7 @@ public class MarchEquivalenceCheckMojo extends AbstractMojo {
         return dependencyConfigA;
     }
 
-    private RuleSetDto findByName(final List<RuleSetDto> declaredRuleSets, final String name) throws MojoExecutionException {
+    static RuleSetDto findByName(final List<RuleSetDto> declaredRuleSets, final String name, final File configFile) throws MojoExecutionException {
         return declaredRuleSets.stream()
                 .filter(ruleSet -> name.equals(ruleSet.name()))
                 .findFirst()
@@ -165,6 +165,6 @@ public class MarchEquivalenceCheckMojo extends AbstractMojo {
                         name, configFile, declaredRuleSets.stream().map(RuleSetDto::name).collect(Collectors.joining(", ")))));
     }
 
-    private record RuleSetPair(RuleSetDto a, RuleSetDto b) {
+    record RuleSetPair(RuleSetDto a, RuleSetDto b) {
     }
 }
