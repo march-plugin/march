@@ -49,6 +49,7 @@ import java.util.stream.Collectors;
  * <p>Usage:</p>
  * <pre>{@code
  * mvn march:module-matrix
+ * mvn march:module-matrix -Dmarch.ruleSet=default-allow-manual
  * }</pre>
  */
 @Mojo(name = "module-matrix", aggregator = true)
@@ -65,6 +66,12 @@ public class MarchModuleMatrixMojo extends AbstractMojo {
      */
     @Parameter(property = "march.columnWidth", defaultValue = "4")
     private int maxColumnWidth;
+
+    /**
+     * The rule set to build the matrix from.
+     */
+    @Parameter(property = "march.ruleSet")
+    private String ruleSet;
 
     /**
      * When {@code false}, cells never show which rule matched: DEFAULT_DENY shows "OK" instead of the
@@ -93,7 +100,7 @@ public class MarchModuleMatrixMojo extends AbstractMojo {
             final var marchConfigDto = new MarchConfigFileReader(configFile).readConfig();
 
             final var dimensionRegistry = new DimensionRegistryInitializer().build(marchConfigDto.dimensions());
-            final var ruleRegistry = new RuleRegistryInitializer(new RuleDefinitionCompiler(dimensionRegistry)).buildActive(marchConfigDto);
+            final var ruleRegistry = new RuleRegistryInitializer(new RuleDefinitionCompiler(dimensionRegistry)).buildActive(marchConfigDto, ruleSet);
             final var projectStructureRoot = new ProjectStructureInitializer(dimensionRegistry).build(marchConfigDto.projectStructure());
             final var packageTemplateRegistry = new PackageTemplateRegistryInitializer().build(marchConfigDto.packageTemplates());
             final var classificationRegistry = new ClassificationRegistryInitializer(projectStructureRoot, packageTemplateRegistry).build(marchConfigDto.modules().module());

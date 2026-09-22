@@ -46,6 +46,7 @@ import java.util.stream.Collectors;
  * mvn march:matrix
  * mvn march:matrix -Dclassifications="{domain;layer}"
  * mvn march:matrix -Dclassifications="{domain(article;order);layer(api;impl)}" -Dmarch.columnWidth=10
+ * mvn march:matrix -Dmarch.ruleSet=default-allow-manual
  * }</pre>
  */
 @Mojo(name = "matrix", aggregator = true)
@@ -63,6 +64,12 @@ public class MarchMatrixMojo extends AbstractMojo {
      */
     @Parameter(property = "classifications")
     private String matrixInput;
+
+    /**
+     * The rule set to build the matrix from.
+     */
+    @Parameter(property = "march.ruleSet")
+    private String ruleSet;
 
     /**
      * Number of characters shown per column before a label is truncated. Partition names that share this
@@ -91,7 +98,7 @@ public class MarchMatrixMojo extends AbstractMojo {
             final var marchConfigDto = new MarchConfigFileReader(configFile).readConfig();
 
             final var dimensionRegistry = new DimensionRegistryInitializer().build(marchConfigDto.dimensions());
-            final var ruleRegistry = new RuleRegistryInitializer(new RuleDefinitionCompiler(dimensionRegistry)).buildActive(marchConfigDto);
+            final var ruleRegistry = new RuleRegistryInitializer(new RuleDefinitionCompiler(dimensionRegistry)).buildActive(marchConfigDto, ruleSet);
             final var projectStructureRoot = new ProjectStructureInitializer(dimensionRegistry).build(marchConfigDto.projectStructure());
 
             final var partitions = new MatrixClassificationParser().parse(matrixInput, dimensionRegistry);

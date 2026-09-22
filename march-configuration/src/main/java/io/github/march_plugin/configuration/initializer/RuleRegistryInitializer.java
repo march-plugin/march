@@ -4,6 +4,7 @@ import io.github.march_plugin.configuration.dto.MarchConfigDto;
 import io.github.march_plugin.configuration.dto.rules.RuleConfigurationDto;
 import io.github.march_plugin.configuration.dto.rules.RuleDto;
 import io.github.march_plugin.configuration.initializer.exception.UnresolvedActiveRuleSetException;
+import io.github.march_plugin.configuration.initializer.exception.UnresolvedRuleSetException;
 import io.github.march_plugin.core.config.rules.config.DependencyConfig;
 import io.github.march_plugin.core.config.rules.config.RuleRegistry;
 import io.github.march_plugin.core.config.rules.config.RuleStrategy;
@@ -63,6 +64,30 @@ public class RuleRegistryInitializer {
         }
 
         return build(active.rules(), active.config());
+    }
+
+    /**
+     * Builds the rule registry for the named rule set, or the active rule set from settings if
+     * {@code ruleSetName} is {@code null}.
+     *
+     * @param marchConfigDto the parsed March configuration
+     * @param ruleSetName    the rule set to build
+     * @return the rule set's registry
+     * @throws UnresolvedActiveRuleSetException if {@code ruleSetName} is {@code null} and the active rule set cannot be resolved
+     * @throws UnresolvedRuleSetException if {@code ruleSetName} is given but does not match any declared rule set
+     */
+    public RuleRegistry buildActive(final MarchConfigDto marchConfigDto, final String ruleSetName) {
+        if (ruleSetName == null) {
+            return buildActive(marchConfigDto);
+        }
+
+        final var declaredRuleSets = marchConfigDto.rules();
+        final var selected = declaredRuleSets.stream()
+                .filter(ruleSet -> ruleSetName.equals(ruleSet.name()))
+                .findFirst()
+                .orElseThrow(() -> new UnresolvedRuleSetException(ruleSetName, declaredRuleSets));
+
+        return build(selected.rules(), selected.config());
     }
 
     private void registerRuleConfig(final RuleRegistry.Builder ruleRegistryBuilder, final RuleConfigurationDto ruleConfigurationDto) {
